@@ -117,7 +117,7 @@ export function ConfirmacoesPage() {
             Central de Confirmações
           </h1>
           <p className="text-xs text-brand-600 font-semibold mt-0.5 capitalize">
-            {textoAmanha} (D-1)
+            {textoAmanha}
           </p>
         </div>
 
@@ -140,7 +140,7 @@ export function ConfirmacoesPage() {
             <Sparkles className="w-5 h-5" />
           </div>
           <div className="flex-1">
-            <h4 className="text-xs font-bold text-slate-800">Régua Automática D-1</h4>
+            <h4 className="text-xs font-bold text-slate-800">Régua Automática</h4>
             <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
               Mensagens personalizadas com horário, serviço e opções rápidas de resposta para evitar faltas e furos na sua grade.
             </p>

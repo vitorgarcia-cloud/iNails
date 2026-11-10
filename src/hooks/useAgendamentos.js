@@ -41,6 +41,19 @@ export function useAgendamentos(filtros = {}) {
     }
   };
 
+  const atualizarAgendamento = async (id, dados) => {
+    try {
+      const { data, error } = await agendamentosService.atualizar(id, dados);
+      if (error) throw error;
+      await carregarAgendamentos();
+      toast.success('Agendamento atualizado com sucesso!');
+      return { data, error: null };
+    } catch (err) {
+      toast.error('Erro ao atualizar agendamento.');
+      return { data: null, error: err };
+    }
+  };
+
   const atualizarStatus = async (id, status) => {
     try {
       const { data, error } = await agendamentosService.atualizarStatus(id, status);
@@ -74,6 +87,7 @@ export function useAgendamentos(filtros = {}) {
     carregando,
     recarregar: carregarAgendamentos,
     criarAgendamento,
+    atualizarAgendamento,
     atualizarStatus,
     removerAgendamento,
   };

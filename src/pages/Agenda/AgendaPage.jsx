@@ -5,6 +5,7 @@ import { useClientes } from '../../hooks/useClientes';
 import { useServicos } from '../../hooks/useServicos';
 import AgendamentoCard from '../../components/agenda/AgendamentoCard';
 import NovoAgendamentoModal from '../../components/agenda/NovoAgendamentoModal';
+import EditarAgendamentoModal from '../../components/agenda/EditarAgendamentoModal';
 import AgendaMesCalendar from '../../components/agenda/AgendaMesCalendar';
 import Tabs from '../../components/ui/Tabs';
 import Button from '../../components/ui/Button';
@@ -40,8 +41,9 @@ export function AgendaPage() {
   const [visualizacao, setVisualizacao] = useState('mes'); // Padrão 'mes' | 'dia' | 'semana'
   const [modalAberto, setModalAberto] = useState(false);
   const [dataModal, setDataModal] = useState(new Date());
+  const [agendamentoEmEdicao, setAgendamentoEmEdicao] = useState(null);
 
-  const { agendamentos, carregando, criarAgendamento, atualizarStatus, removerAgendamento } = useAgendamentos();
+  const { agendamentos, carregando, criarAgendamento, atualizarAgendamento, atualizarStatus, removerAgendamento } = useAgendamentos();
   const { clientes } = useClientes();
   const { servicos } = useServicos();
 
@@ -127,6 +129,7 @@ export function AgendaPage() {
           onNovoAgendamento={abrirModalComData}
           onStatusChange={atualizarStatus}
           onDelete={removerAgendamento}
+          onEdit={(item) => setAgendamentoEmEdicao(item)}
           onVerDiaDetalhado={handleVerDiaDetalhado}
         />
       )}
@@ -206,6 +209,7 @@ export function AgendaPage() {
                   agendamento={item}
                   onStatusChange={atualizarStatus}
                   onDelete={removerAgendamento}
+                  onEdit={(ag) => setAgendamentoEmEdicao(ag)}
                 />
               ))}
             </div>
@@ -221,6 +225,16 @@ export function AgendaPage() {
         servicos={servicos}
         dataInicial={dataModal}
         onSalvar={criarAgendamento}
+      />
+
+      {/* Modal de Edição de Agendamento */}
+      <EditarAgendamentoModal
+        isOpen={Boolean(agendamentoEmEdicao)}
+        onClose={() => setAgendamentoEmEdicao(null)}
+        agendamento={agendamentoEmEdicao}
+        clientes={clientes}
+        servicos={servicos}
+        onSalvar={atualizarAgendamento}
       />
     </div>
   );

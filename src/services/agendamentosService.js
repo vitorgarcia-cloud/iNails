@@ -187,6 +187,43 @@ export const agendamentosService = {
   },
 
   /**
+   * Atualiza os dados de um agendamento (serviço, cliente, data_hora, valor, observação, status)
+   */
+  async atualizar(id, dados) {
+    if (isDemoSession() || !isSupabaseConfigured) {
+      const db = getMockDB();
+      const index = db.agendamentos.findIndex(a => a.id === id);
+      if (index !== -1) {
+        db.agendamentos[index] = {
+          ...db.agendamentos[index],
+          ...dados,
+          valor: dados.valor !== undefined ? Number(dados.valor) : db.agendamentos[index].valor,
+          updated_at: new Date().toISOString(),
+        };
+        saveMockDB(db);
+
+        const atualizado = db.agendamentos[index];
+        const populado = {
+          ...atualizado,
+          clientes: db.clientes.find(c => c.id === atualizado.cliente_id) || null,
+          servicos_base: db.servicos_base.find(s => s.id === atualizado.servico_id) || null,
+        };
+        return { data: populado, error: null };
+      }
+      return { data: null, error: 'Agendamento não encontrado' };
+    }
+
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .update(dados)
+      .eq('id', id)
+      .select('*, clientes(id, nome, telefone), servicos_base(id, nome, intervalo_dias_manutencao, valor_padrao)')
+      .single();
+
+    return { data, error };
+  },
+
+  /**
    * Atualiza status de um agendamento (pendente, confirmado, concluido, cancelado)
    */
   async atualizarStatus(id, status) {

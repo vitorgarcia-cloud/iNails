@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Sparkles, LogOut, Database, User, ChevronDown, Settings, Store, Calendar, Scissors } from 'lucide-react';
+import { Sparkles, LogOut, Database, ChevronDown, Store, Calendar } from 'lucide-react';
 
 export function Header() {
   const { profile, signOut, isDemo } = useAuth();
@@ -33,15 +33,6 @@ export function Header() {
 
         {/* Perfil & Ações */}
         <div className="relative flex items-center gap-1.5">
-          {/* Botão de Atalho Rápido para Perfil */}
-          <Link
-            to="/perfil"
-            className="p-2 text-slate-400 hover:text-brand-600 rounded-full hover:bg-slate-100 transition-colors"
-            title="Configurações do Estúdio"
-          >
-            <Settings className="w-4 h-4" />
-          </Link>
-
           <button
             onClick={() => setMenuOpen(!menuOpen)}
             className="flex items-center gap-1 p-1 rounded-full hover:bg-slate-100 transition-colors"

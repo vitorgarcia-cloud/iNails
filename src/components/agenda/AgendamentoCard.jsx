@@ -2,12 +2,13 @@ import React from 'react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { formatDataBR, formatHoraBR, formatMoeda } from '../../utils/formatters';
-import { Clock, User, CheckCircle2, XCircle, RefreshCw, Trash2 } from 'lucide-react';
+import { Clock, User, CheckCircle2, XCircle, RefreshCw, Trash2, Edit2 } from 'lucide-react';
 
 export function AgendamentoCard({
   agendamento,
   onStatusChange,
   onDelete,
+  onEdit,
 }) {
   const clienteNome = agendamento.clientes?.nome || 'Cliente';
   const servicoNome = agendamento.servicos_base?.nome || 'Serviço';
@@ -70,24 +71,30 @@ export function AgendamentoCard({
       {/* Bottom Actions: Mudança rápida de status */}
       <div className="flex items-center justify-between pt-0.5">
         <div className="flex items-center gap-1.5">
-          {status !== 'confirmado' && status !== 'concluido' && (
+          {/* Botão de Fluxo: Confirmar -> Concluir (ocupam o mesmo espaço) */}
+          {status === 'pendente' && (
             <button
+              type="button"
               onClick={() => onStatusChange(agendamento.id, 'confirmado')}
               className="text-[11px] font-semibold text-sky-700 bg-sky-50 hover:bg-sky-100 px-2.5 py-1 rounded-lg border border-sky-200 transition-colors"
             >
               Confirmar
             </button>
           )}
-          {status !== 'concluido' && (
+
+          {status === 'confirmado' && (
             <button
+              type="button"
               onClick={() => onStatusChange(agendamento.id, 'concluido')}
               className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-lg border border-emerald-200 transition-colors"
             >
               Concluir
             </button>
           )}
-          {status !== 'cancelado' && (
+
+          {status !== 'concluido' && status !== 'cancelado' && (
             <button
+              type="button"
               onClick={() => onStatusChange(agendamento.id, 'cancelado')}
               className="text-[11px] font-semibold text-slate-500 hover:text-rose-600 bg-slate-50 hover:bg-rose-50 px-2.5 py-1 rounded-lg border border-slate-200 transition-colors"
             >
@@ -96,15 +103,29 @@ export function AgendamentoCard({
           )}
         </div>
 
-        {onDelete && (
-          <button
-            onClick={() => onDelete(agendamento.id)}
-            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors"
-            title="Excluir agendamento"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <div className="flex items-center gap-1">
+          {onEdit && (
+            <button
+              type="button"
+              onClick={() => onEdit(agendamento)}
+              className="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition-colors"
+              title="Editar serviço e agendamento"
+            >
+              <Edit2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              type="button"
+              onClick={() => onDelete(agendamento.id)}
+              className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors"
+              title="Excluir agendamento"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
     </Card>
   );

@@ -383,10 +383,9 @@ export function GraficoFaturamentoCustos({
 
       {/* GRÁFICO EM COLUNAS COM EIXO Y E DIVISÕES BEM VISÍVEIS */}
       <div className="pt-2">
-        {/* Gráfico com Eixo Y à Esquerda e Linhas de Grade Horizontais */}
         <div className="flex">
           {/* Eixo Y à Esquerda com os valores adaptados em R$ e traços de divisão */}
-          <div className="relative w-10 sm:w-24 shrink-0 h-52 select-none border-r-2 border-slate-300 pr-2">
+          <div className="relative w-14 sm:w-16 shrink-0 h-52 select-none border-r-2 border-slate-300 pr-1.5">
             {ticksY.map((tick, i) => {
               const topPct = 100 - tick.pct;
               const transformClass =
@@ -399,124 +398,125 @@ export function GraficoFaturamentoCustos({
               return (
                 <div
                   key={i}
-                  className={`absolute right-0 flex items-center justify-end gap-1.5 w-full ${transformClass}`}
+                  className={`absolute right-0 flex items-center justify-end gap-1 w-full ${transformClass}`}
                   style={{ top: `${topPct}%` }}
                 >
-                  <span className="text-[11px] sm:text-xs font-bold text-slate-700 tracking-tight whitespace-nowrap">
+                  <span className="text-[10px] sm:text-xs font-bold text-slate-600 tracking-tight whitespace-nowrap">
                     {tick.label}
                   </span>
-                  <span className="w-2.5 h-[2px] bg-slate-400 rounded-full" />
+                  <span className="w-1.5 sm:w-2 h-[2px] bg-slate-400 rounded-full" />
                 </div>
               );
             })}
           </div>
 
-          {/* Gráfico de Colunas com Linhas de Grade e Faixas Alternadas Bem Visíveis */}
-          <div className="relative flex-1 h-52 overflow-hidden bg-white border-t border-slate-300">
-            {/* Linhas de Grade Horizontais com Divisões Bem Visíveis e Zebra Shading */}
-            <div className="absolute inset-0 flex flex-col pointer-events-none">
-              {faixasDivisao.map((faixa, idx) => (
-                <div
-                  key={faixa.index}
-                  className={`flex-1 w-full border-b ${
-                    idx === faixasDivisao.length - 1
-                      ? 'border-b-2 border-slate-500'
-                      : 'border-b border-slate-300'
-                  } ${faixa.isPar ? 'bg-slate-50/80' : 'bg-white'}`}
-                />
-              ))}
+          {/* Área Direita: Contém as Colunas E os Rótulos do Eixo X em alinhamento perfeito (1:1) */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Gráfico de Colunas com Linhas de Grade e Faixas Alternadas */}
+            <div className="relative h-52 w-full overflow-hidden bg-white border-t border-slate-300">
+              {/* Linhas de Grade Horizontais com Divisões Bem Visíveis e Zebra Shading */}
+              <div className="absolute inset-0 flex flex-col pointer-events-none">
+                {faixasDivisao.map((faixa, idx) => (
+                  <div
+                    key={faixa.index}
+                    className={`flex-1 w-full border-b ${
+                      idx === faixasDivisao.length - 1
+                        ? 'border-b-2 border-slate-500'
+                        : 'border-b border-slate-300'
+                    } ${faixa.isPar ? 'bg-slate-50/80' : 'bg-white'}`}
+                  />
+                ))}
+              </div>
+
+              {/* Colunas Verdes e Vermelhas */}
+              <div className="absolute inset-0 flex items-end justify-between px-1">
+                {dadosGrafico.map((item) => {
+                  const alturaFaturamento =
+                    maxValorGrafico > 0
+                      ? Math.max(
+                        item.faturamento > 0 ? 6 : 0,
+                        (item.faturamento / maxValorGrafico) * 208
+                      )
+                      : 0;
+
+                  const alturaCustos =
+                    maxValorGrafico > 0
+                      ? Math.max(
+                        item.custos > 0 ? 6 : 0,
+                        (item.custos / maxValorGrafico) * 208
+                      )
+                      : 0;
+
+                  const isSelected = itemAtivo?.id === item.id;
+
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => setItemSelecionado(item)}
+                      className={`
+                        flex-1 flex items-end justify-center gap-1 sm:gap-1.5 h-full cursor-pointer group transition-all pb-[2px] px-0.5
+                        ${isSelected ? 'opacity-100 z-10' : 'opacity-85 hover:opacity-100'}
+                      `}
+                      title={`${item.tituloCompleto}\nFaturamento: ${formatMoeda(item.faturamento)}\nCustos: ${formatMoeda(item.custos)}`}
+                    >
+                      {/* Coluna Verde (Faturamento) */}
+                      <div
+                        style={{ height: `${alturaFaturamento}px` }}
+                        className={`
+                          w-1/2 max-w-[16px] sm:max-w-[20px] rounded-t-sm transition-all duration-300
+                          ${item.faturamento > 0
+                            ? 'bg-emerald-500 group-hover:bg-emerald-600 shadow-xs'
+                            : 'bg-emerald-100/30'
+                          }
+                          ${isSelected && item.faturamento > 0 ? 'ring-2 ring-emerald-400 ring-offset-1' : ''}
+                        `}
+                      />
+
+                      {/* Coluna Vermelha (Custos / Despesas) */}
+                      <div
+                        style={{ height: `${alturaCustos}px` }}
+                        className={`
+                          w-1/2 max-w-[16px] sm:max-w-[20px] rounded-t-sm transition-all duration-300
+                          ${item.custos > 0
+                            ? 'bg-rose-500 group-hover:bg-rose-600 shadow-xs'
+                            : 'bg-rose-100/30'
+                          }
+                          ${isSelected && item.custos > 0 ? 'ring-2 ring-rose-400 ring-offset-1' : ''}
+                        `}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Colunas Verdes e Vermelhas */}
-            <div className="absolute inset-0 flex items-end justify-between gap-1 sm:gap-2 px-1">
+            {/* Rótulos do Eixo X - Exatamente no mesmo fluxo e largura da grade acima */}
+            <div className="w-full flex items-start justify-between px-1 pt-2">
               {dadosGrafico.map((item) => {
-                const alturaFaturamento =
-                  maxValorGrafico > 0
-                    ? Math.max(
-                      item.faturamento > 0 ? 5 : 0,
-                      (item.faturamento / maxValorGrafico) * 208
-                    )
-                    : 0;
-
-                const alturaCustos =
-                  maxValorGrafico > 0
-                    ? Math.max(
-                      item.custos > 0 ? 5 : 0,
-                      (item.custos / maxValorGrafico) * 208
-                    )
-                    : 0;
-
                 const isSelected = itemAtivo?.id === item.id;
-
                 return (
                   <div
                     key={item.id}
                     onClick={() => setItemSelecionado(item)}
-                    className={`
-                      flex-1 flex items-end justify-center gap-0.5 sm:gap-1.5 h-full cursor-pointer group transition-all pb-[2px]
-                      ${isSelected ? 'opacity-100 z-10' : 'opacity-85 hover:opacity-100'}
-                    `}
-                    title={`${item.tituloCompleto}\nFaturamento: ${formatMoeda(item.faturamento)}\nCustos: ${formatMoeda(item.custos)}`}
+                    className="flex-1 text-center cursor-pointer select-none py-0.5 px-0.5 hover:bg-slate-50 rounded"
                   >
-                    {/* Coluna Verde (Faturamento) */}
-                    <div
-                      style={{ height: `${alturaFaturamento}px` }}
+                    <span
                       className={`
-                        w-1/2 max-w-[18px] rounded-t-sm transition-all duration-300
-                        ${item.faturamento > 0
-                          ? 'bg-emerald-500 group-hover:bg-emerald-600 shadow-xs'
-                          : 'bg-emerald-100/40'
-                        }
-                        ${isSelected ? 'ring-2 ring-emerald-400 ring-offset-1' : ''}
+                        text-[10px] sm:text-[11px] block leading-tight font-bold transition-colors truncate
+                        ${isSelected ? 'text-slate-900 font-black' : 'text-slate-600'}
                       `}
-                    />
-
-                    {/* Coluna Vermelha (Custos / Despesas) */}
-                    <div
-                      style={{ height: `${alturaCustos}px` }}
-                      className={`
-                        w-1/2 max-w-[18px] rounded-t-sm transition-all duration-300
-                        ${item.custos > 0
-                          ? 'bg-rose-500 group-hover:bg-rose-600 shadow-xs'
-                          : 'bg-rose-100/40'
-                        }
-                        ${isSelected ? 'ring-2 ring-rose-400 ring-offset-1' : ''}
-                      `}
-                    />
+                    >
+                      {item.label}
+                    </span>
+                    {item.sublabel && (
+                      <span className="text-[9px] text-slate-400 block leading-none mt-0.5 font-medium truncate">
+                        {item.sublabel}
+                      </span>
+                    )}
                   </div>
                 );
               })}
             </div>
-          </div>
-        </div>
-
-        {/* Rótulos do Eixo X (alinhados com a largura do gráfico) */}
-        <div className="flex pl-20 sm:pl-24 pt-2">
-          <div className="w-full flex items-center justify-between px-1">
-            {dadosGrafico.map((item) => {
-              const isSelected = itemAtivo?.id === item.id;
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => setItemSelecionado(item)}
-                  className="flex-1 text-center cursor-pointer select-none py-0.5 hover:bg-slate-50 rounded"
-                >
-                  <span
-                    className={`
-                      text-[10px] sm:text-[11px] block leading-tight font-bold transition-colors
-                      ${isSelected ? 'text-slate-900 font-black' : 'text-slate-600'}
-                    `}
-                  >
-                    {item.label}
-                  </span>
-                  {item.sublabel && (
-                    <span className="text-[9px] text-slate-400 block leading-none mt-0.5 font-medium">
-                      {item.sublabel}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
           </div>
         </div>
       </div>

@@ -23,7 +23,6 @@ import {
   Sparkles,
   PartyPopper,
   Clock,
-  Eye,
   CheckCircle2,
   CalendarCheck2,
   MousePointerClick
@@ -44,6 +43,7 @@ export function AgendaMesCalendar({
   onNovoAgendamento,
   onStatusChange,
   onDelete,
+  onEdit,
   onVerDiaDetalhado,
 }) {
   const inicioMes = startOfMonth(mesAtual);
@@ -470,19 +470,6 @@ export function AgendaMesCalendar({
                   {feriadoDiaSelecionado.nome}
                 </span>
               )}
-
-              {!trabalhaDiaSelecionado ? (
-                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                  <Coffee className="w-3 h-3 text-slate-500" />
-                  Folga semanal da manicure
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-lg flex items-center gap-1">
-                  <CalendarCheck2 className="w-3 h-3 text-emerald-600" />
-                  Dia de atendimento
-                </span>
-              )}
-
               <span className="text-[10px] text-slate-400 font-medium">
                 • {agendamentosDoDiaSelecionado.length} agendamento(s)
               </span>
@@ -490,18 +477,6 @@ export function AgendaMesCalendar({
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {onVerDiaDetalhado && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onVerDiaDetalhado(dataSelecionada)}
-                title="Ver na linha do tempo diária"
-              >
-                <Eye className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline ml-1">Ver Dia</span>
-              </Button>
-            )}
-
             <Button
               variant="primary"
               size="sm"
@@ -536,6 +511,7 @@ export function AgendaMesCalendar({
                 agendamento={item}
                 onStatusChange={onStatusChange}
                 onDelete={onDelete}
+                onEdit={onEdit}
               />
             ))}
           </div>

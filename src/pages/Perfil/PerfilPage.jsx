@@ -114,7 +114,7 @@ export function PerfilPage() {
       setIntervaloPadraoDias(profile.intervalo_padrao_dias || 21);
       setMensagemWhatsapp(
         profile.mensagem_whatsapp ||
-          'Olá {cliente}! ✨ Passando para confirmar seu horário no {estudio} para {servico} no dia {data} às {hora}. Podemos confirmar? 💅'
+        'Olá {cliente}! ✨ Passando para confirmar seu horário no {estudio} para {servico} no dia {data} às {hora}. Podemos confirmar? 💅'
       );
     }
   }, [profile]);
@@ -255,9 +255,9 @@ export function PerfilPage() {
       {/* Tabs de Navegação */}
       <Tabs
         tabs={[
-          { id: 'geral', label: 'Estúdio & Dados' },
+          { id: 'geral', label: 'Meu Estúdio' },
           { id: 'jornada', label: 'Dias & Folgas' },
-          { id: 'servicos', label: 'Catálogo de Serviços' },
+          { id: 'servicos', label: 'Serviços' },
           { id: 'whatsapp', label: 'WhatsApp' },
         ]}
         activeTab={abaAtiva}
@@ -481,9 +481,8 @@ export function PerfilPage() {
                   >
                     <div className="flex items-center gap-2.5">
                       <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${
-                          ativo ? 'bg-brand-500 text-white' : 'bg-slate-200 text-slate-500'
-                        }`}
+                        className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black ${ativo ? 'bg-brand-500 text-white' : 'bg-slate-200 text-slate-500'
+                          }`}
                       >
                         {dia.abrev}
                       </div>
@@ -637,7 +636,7 @@ export function PerfilPage() {
           <Card className="flex flex-col gap-3" padding="p-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <MessageCircle className="w-4 h-4 text-emerald-500" />
-              Modelo de Confirmação (D-1 WhatsApp)
+              Modelo de Confirmação
             </h3>
             <p className="text-xs text-slate-500">
               Personalize o texto padrão que será enviado para suas clientes na aba de confirmações com 1 clique.

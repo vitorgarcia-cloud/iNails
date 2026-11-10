@@ -256,7 +256,7 @@ export function DashboardPage() {
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h4 className="text-sm font-bold">Central de Confirmações (D-1)</h4>
+                <h4 className="text-sm font-bold">Central de Confirmações</h4>
                 <p className="text-xs text-brand-100 mt-0.5">
                   Dispare lembretes de amanhã pelo WhatsApp
                 </p>
