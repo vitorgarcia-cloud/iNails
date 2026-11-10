@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useServicos } from '../../hooks/useServicos';
 import { useToast } from '../../hooks/useToast';
+import { usePWAInstall } from '../../contexts/PWAInstallContext';
 import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
@@ -29,7 +30,10 @@ import {
   Save,
   Image as ImageIcon,
   Upload,
-  RefreshCw
+  RefreshCw,
+  Smartphone,
+  Download,
+  CheckCircle2
 } from 'lucide-react';
 
 const AVATAR_PRESETS = [
@@ -68,6 +72,7 @@ const DIAS_SEMANA = [
 export function PerfilPage() {
   const { profile, updateProfile } = useAuth();
   const { servicos, adicionarServico, atualizarServico, excluirServico } = useServicos();
+  const { isInstalled, installApp, openInstrucoes } = usePWAInstall();
   const toast = useToast();
 
   const [abaAtiva, setAbaAtiva] = useState('geral');
@@ -442,6 +447,52 @@ export function PerfilPage() {
                 </select>
               </div>
             </div>
+          </Card>
+
+          {/* Atalho & Aplicativo na Tela Inicial (PWA) */}
+          <Card className="flex flex-col gap-3.5 border-brand-200/80 bg-gradient-to-br from-brand-50/40 via-white to-brand-50/20 shadow-sm" padding="p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Atalho na Tela Inicial (Aplicativo)
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+                    Instale o iNails no seu celular ou computador para abrir com um toque, tela cheia e sem barra de navegação.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isInstalled ? (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-emerald-800 font-semibold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>O aplicativo já está instalado neste dispositivo!</span>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  fullWidth
+                  icon={Download}
+                  onClick={installApp}
+                >
+                  Criar Atalho na Tela Inicial
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  fullWidth
+                  onClick={openInstrucoes}
+                >
+                  Ver Instruções
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       )}
