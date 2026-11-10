@@ -1,0 +1,233 @@
+import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
+import { getMockDB, saveMockDB } from './mockData';
+import { calcularProximasManutencoes } from '../utils/recurrence';
+import { startOfDay, endOfDay, addDays, isSameDay, parseISO } from 'date-fns';
+
+export const agendamentosService = {
+  /**
+   * Lista todos os agendamentos com filtros opcionais
+   */
+  async listar({ dataInicio, dataFim, clienteId } = {}) {
+    if (!isSupabaseConfigured) {
+      const db = getMockDB();
+      let list = [...(db.agendamentos || [])];
+
+      if (clienteId) {
+        list = list.filter(a => a.cliente_id === clienteId);
+      }
+
+      if (dataInicio && dataFim) {
+        const dIni = new Date(dataInicio).getTime();
+        const dFim = new Date(dataFim).getTime();
+        list = list.filter(a => {
+          const t = new Date(a.data_hora).getTime();
+          return t >= dIni && t <= dFim;
+        });
+      }
+
+      // Preenche relacionamentos com clientes e servicos
+      const populados = list.map(a => {
+        const cliente = db.clientes.find(c => c.id === a.cliente_id);
+        const servico = db.servicos_base.find(s => s.id === a.servico_id);
+        return {
+          ...a,
+          clientes: cliente || null,
+          servicos_base: servico || null,
+        };
+      });
+
+      populados.sort((a, b) => new Date(a.data_hora) - new Date(b.data_hora));
+      return { data: populados, error: null };
+    }
+
+    let query = supabase
+      .from('agendamentos')
+      .select('*, clientes(id, nome, telefone), servicos_base(id, nome, intervalo_dias_manutencao, valor_padrao)')
+      .order('data_hora', { ascending: true });
+
+    if (clienteId) {
+      query = query.eq('cliente_id', clienteId);
+    }
+
+    if (dataInicio && dataFim) {
+      query = query.gte('data_hora', dataInicio).lte('data_hora', dataFim);
+    }
+
+    const { data, error } = await query;
+    return { data, error };
+  },
+
+  /**
+   * Retorna os agendamentos de amanhã que ainda NÃO estão confirmados (D-1 WhatsApp)
+   */
+  async listarDeAmanhaNaoConfirmados() {
+    const amanha = addDays(new Date(), 1);
+    const inicioAmanha = startOfDay(amanha);
+    const fimAmanha = endOfDay(amanha);
+
+    if (!isSupabaseConfigured) {
+      const db = getMockDB();
+      const list = (db.agendamentos || []).filter(a => {
+        const d = parseISO(a.data_hora);
+        const ehAmanha = isSameDay(d, amanha);
+        const statusNaoConfirmado = a.status === 'pendente';
+        return ehAmanha && statusNaoConfirmado;
+      });
+
+      const populados = list.map(a => ({
+        ...a,
+        clientes: db.clientes.find(c => c.id === a.cliente_id) || null,
+        servicos_base: db.servicos_base.find(s => s.id === a.servico_id) || null
+      }));
+
+      return { data: populados, error: null };
+    }
+
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .select('*, clientes(id, nome, telefone), servicos_base(id, nome, valor_padrao)')
+      .gte('data_hora', inicioAmanha.toISOString())
+      .lte('data_hora', fimAmanha.toISOString())
+      .eq('status', 'pendente')
+      .order('data_hora', { ascending: true });
+
+    return { data, error };
+  },
+
+  /**
+   * Cria novo agendamento com opção de projeção de recorrência automática
+   */
+  async criar({
+    cliente_id,
+    servico_id,
+    data_hora,
+    valor,
+    observacao = '',
+    gerarProjecoes = false,
+    intervaloDias = 21,
+    qtdCiclos = 3
+  }) {
+    const novoAgendamento = {
+      cliente_id,
+      servico_id,
+      data_hora,
+      valor: Number(valor || 0),
+      observacao,
+      status: 'pendente',
+      is_recorrente: false,
+    };
+
+    if (!isSupabaseConfigured) {
+      const db = getMockDB();
+      const idPrincipal = 'a_' + Date.now();
+      const principal = {
+        ...novoAgendamento,
+        id: idPrincipal,
+        user_id: db.profile.user_id,
+        created_at: new Date().toISOString()
+      };
+      db.agendamentos.push(principal);
+
+      // Gerar projeções futuras se solicitado
+      if (gerarProjecoes && intervaloDias > 0) {
+        const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos);
+        projecoes.forEach(proj => {
+          db.agendamentos.push({
+            id: 'a_rec_' + Date.now() + '_' + proj.ciclo,
+            user_id: db.profile.user_id,
+            cliente_id,
+            servico_id,
+            data_hora: proj.dataISO,
+            valor: Number(valor || 0),
+            status: 'pendente',
+            is_recorrente: true,
+            observacao: `[Recorrência Automática] Manutenção Ciclo ${proj.ciclo}`,
+            created_at: new Date().toISOString()
+          });
+        });
+      }
+
+      saveMockDB(db);
+      return { data: principal, error: null };
+    }
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // 1. Cria agendamento principal
+    const { data: principal, error: errPrincipal } = await supabase
+      .from('agendamentos')
+      .insert({
+        ...novoAgendamento,
+        user_id: user?.id,
+      })
+      .select()
+      .single();
+
+    if (errPrincipal) return { data: null, error: errPrincipal };
+
+    // 2. Cria projeções de agendamentos no banco para os próximos meses
+    if (gerarProjecoes && intervaloDias > 0) {
+      const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos);
+      const registrosProjecoes = projecoes.map(proj => ({
+        user_id: user?.id,
+        cliente_id,
+        servico_id,
+        data_hora: proj.dataISO,
+        valor: Number(valor || 0),
+        status: 'pendente',
+        is_recorrente: true,
+        observacao: `[Recorrência Automática] Manutenção Ciclo ${proj.ciclo}`,
+      }));
+
+      await supabase.from('agendamentos').insert(registrosProjecoes);
+    }
+
+    return { data: principal, error: null };
+  },
+
+  /**
+   * Atualiza status de um agendamento (pendente, confirmado, concluido, cancelado)
+   */
+  async atualizarStatus(id, status) {
+    if (!isSupabaseConfigured) {
+      const db = getMockDB();
+      const index = db.agendamentos.findIndex(a => a.id === id);
+      if (index !== -1) {
+        db.agendamentos[index].status = status;
+        saveMockDB(db);
+        return { data: db.agendamentos[index], error: null };
+      }
+      return { data: null, error: 'Agendamento não encontrado' };
+    }
+
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    return { data, error };
+  },
+
+  /**
+   * Exclui agendamento
+   */
+  async excluir(id) {
+    if (!isSupabaseConfigured) {
+      const db = getMockDB();
+      db.agendamentos = db.agendamentos.filter(a => a.id !== id);
+      saveMockDB(db);
+      return { error: null };
+    }
+
+    const { error } = await supabase
+      .from('agendamentos')
+      .delete()
+      .eq('id', id);
+
+    return { error };
+  }
+};
+
+export default agendamentosService;
