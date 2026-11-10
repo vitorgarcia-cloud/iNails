@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { Sparkles, LogOut, Database, ChevronDown, Store, Calendar } from 'lucide-react';
+import { LogOut, Database, ChevronDown, Store, Calendar } from 'lucide-react';
 
 export function Header() {
   const { profile, signOut, isDemo } = useAuth();
@@ -13,9 +13,11 @@ export function Header() {
       <div className="max-w-md mx-auto flex items-center justify-between">
         {/* Logo & Nome do Estúdio */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center shadow-sm shadow-brand-500/20 group-hover:scale-105 transition-transform">
-            <Sparkles className="w-5 h-5" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="iNails Logo"
+            className="w-9 h-9 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform"
+          />
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-sm text-slate-800 tracking-tight">iNails</span>

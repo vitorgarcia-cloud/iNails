@@ -4,7 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { Sparkles, Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
+import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -95,9 +95,11 @@ export function LoginPage() {
       <div className="w-full max-w-sm mx-auto">
         {/* Logo e Cabeçalho */}
         <div className="text-center mb-8">
-          <div className="inline-flex w-14 h-14 rounded-3xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white items-center justify-center shadow-lg shadow-brand-500/30 mb-4 animate-in zoom-in duration-300">
-            <Sparkles className="w-7 h-7" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="iNails Logo"
+            className="inline-block w-20 h-20 rounded-3xl shadow-xl shadow-brand-500/20 mb-3 animate-in zoom-in duration-300 object-cover"
+          />
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">iNails</h1>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
             Gestão inteligente de ciclos, recorrência e finanças para Nail Designers

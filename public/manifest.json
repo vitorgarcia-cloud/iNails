@@ -4,8 +4,8 @@
   "description": "Sistema de gestão de agendamentos, clientes, finanças e estoque para manicures e nail designers",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFF5F6",
-  "theme_color": "#FF8894",
+  "background_color": "#F8F5FF",
+  "theme_color": "#C6AEF8",
   "orientation": "portrait-primary",
   "icons": [
     {

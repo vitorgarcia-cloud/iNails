@@ -36,6 +36,11 @@ import {
 
 const AVATAR_PRESETS = [
   {
+    id: 'preset-logo',
+    label: 'Logo Oficial iNails',
+    url: '/logo.png',
+  },
+  {
     id: 'preset-1',
     label: 'Studio Delicado',
     url: 'https://images.unsplash.com/photo-1595475243692-392820991677?w=240&auto=format&fit=crop&q=80',
@@ -239,7 +244,7 @@ export function PerfilPage() {
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
             Perfil & Estúdio
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-450 mt-0.5">
             Configure seu negócio, dias de atendimento e catálogo de serviços
           </p>
         </div>

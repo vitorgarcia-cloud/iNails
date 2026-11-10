@@ -7,8 +7,8 @@ import { ptBR } from 'date-fns/locale';
 import { PieChart as PieChartIcon } from 'lucide-react';
 
 const CORES_PALETA = [
-  '#FF8894', // Vermelho Coral Marca (iNails)
-  '#8B5CF6', // Roxo / Lavanda Sofisticado
+  '#9B6DF1', // Lavanda Marca Principal (iNails)
+  '#C6AEF8', // Lilás Pastel Logo
   '#10B981', // Verde Esmeralda
   '#F59E0B', // Âmbar Dourado
   '#06B6D4', // Ciano Turquesa

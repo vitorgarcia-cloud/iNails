@@ -1,6 +1,6 @@
 import React from 'react';
 import { usePWAInstall } from '../../contexts/PWAInstallContext';
-import { Sparkles, X, Download, Smartphone, Monitor } from 'lucide-react';
+import { X, Download, Smartphone, Monitor } from 'lucide-react';
 import Button from '../ui/Button';
 
 export function PWAInstallPrompt() {
@@ -27,9 +27,11 @@ export function PWAInstallPrompt() {
 
         {/* Conteúdo Principal */}
         <div className="flex items-start gap-3.5 pr-8">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center shadow-md shadow-brand-500/25 shrink-0">
-            <Sparkles className="w-6 h-6" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="iNails Logo"
+            className="w-12 h-12 rounded-2xl shadow-md shadow-brand-500/20 shrink-0 object-cover"
+          />
 
           <div>
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-brand-600 block">
