@@ -1,7 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseAnonKey =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  '';
 
 // Verifica se as credenciais do Supabase foram configuradas
 export const isSupabaseConfigured = Boolean(
@@ -13,9 +16,9 @@ export const isSupabaseConfigured = Boolean(
 
 if (!isSupabaseConfigured) {
   console.warn(
-    '⚠️ [iNails] Credenciais do Supabase não configuradas no arquivo .env. ' +
+    '⚠️ [iNails] Credenciais do Supabase não configuradas no arquivo .env ou no painel da Vercel. ' +
     'A aplicação está rodando em modo DEMO com armazenamento local temporário. ' +
-    'Consulte supabase/README.md para conectar seu banco de dados PostgreSQL.'
+    'Configure VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.'
   );
 }
 
