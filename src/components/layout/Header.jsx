@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { isSupabaseConfigured } from '../../config/supabaseClient';
 import { Sparkles, LogOut, Database, User, ChevronDown, Settings, Store, Calendar, Scissors } from 'lucide-react';
 
 export function Header() {
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, isDemo } = useAuth();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -20,7 +19,7 @@ export function Header() {
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-sm text-slate-800 tracking-tight">iNails</span>
-              {!isSupabaseConfigured && (
+              {isDemo && (
                 <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                   Demo
                 </span>
@@ -100,7 +99,7 @@ export function Header() {
                   <div className="px-3 py-2 flex items-center gap-2 text-[11px] text-slate-500">
                     <Database className="w-3.5 h-3.5 text-slate-400" />
                     <span>
-                      {isSupabaseConfigured ? 'Supabase Conectado' : 'Modo Demonstração'}
+                      {isDemo ? 'Modo Demonstração' : 'Banco de Dados Conectado'}
                     </span>
                   </div>
                 </div>

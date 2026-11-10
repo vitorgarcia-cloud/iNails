@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import { getMockDB, saveMockDB } from './mockData';
+import { isDemoSession } from './authService';
 import { calcularProximasManutencoes } from '../utils/recurrence';
 import { startOfDay, endOfDay, addDays, isSameDay, parseISO } from 'date-fns';
 
@@ -8,7 +9,7 @@ export const agendamentosService = {
    * Lista todos os agendamentos com filtros opcionais
    */
   async listar({ dataInicio, dataFim, clienteId } = {}) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       let list = [...(db.agendamentos || [])];
 
@@ -65,7 +66,7 @@ export const agendamentosService = {
     const inicioAmanha = startOfDay(amanha);
     const fimAmanha = endOfDay(amanha);
 
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const list = (db.agendamentos || []).filter(a => {
         const d = parseISO(a.data_hora);
@@ -117,7 +118,7 @@ export const agendamentosService = {
       is_recorrente: false,
     };
 
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const idPrincipal = 'a_' + Date.now();
       const principal = {
@@ -189,7 +190,7 @@ export const agendamentosService = {
    * Atualiza status de um agendamento (pendente, confirmado, concluido, cancelado)
    */
   async atualizarStatus(id, status) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.agendamentos.findIndex(a => a.id === id);
       if (index !== -1) {
@@ -214,7 +215,7 @@ export const agendamentosService = {
    * Exclui agendamento
    */
   async excluir(id) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       db.agendamentos = db.agendamentos.filter(a => a.id !== id);
       saveMockDB(db);

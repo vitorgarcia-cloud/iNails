@@ -1,20 +1,39 @@
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import { getMockDB, saveMockDB } from './mockData';
+import { isDemoSession } from './authService';
 
 export const servicosService = {
   /**
    * Lista todos os serviços base da nail designer
    */
   async listar() {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       return { data: db.servicos_base || [], error: null };
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('servicos_base')
       .select('*')
       .order('nome', { ascending: true });
+
+    // Se o catálogo estiver vazio para essa profissional no banco, inicializa os 5 serviços padrão
+    if (!error && data && data.length === 0) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.id) {
+        const servicosPadrao = [
+          { user_id: user.id, nome: 'Alongamento Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 150.00 },
+          { user_id: user.id, nome: 'Manutenção Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 95.00 },
+          { user_id: user.id, nome: 'Esmaltação em Gel', intervalo_dias_manutencao: 15, valor_padrao: 60.00 },
+          { user_id: user.id, nome: 'Banho de Gel', intervalo_dias_manutencao: 21, valor_padrao: 80.00 },
+          { user_id: user.id, nome: 'Manicure Tradicional', intervalo_dias_manutencao: 7, valor_padrao: 35.00 }
+        ];
+        const resInsert = await supabase.from('servicos_base').insert(servicosPadrao).select();
+        if (resInsert.data && resInsert.data.length > 0) {
+          data = resInsert.data;
+        }
+      }
+    }
 
     return { data, error };
   },
@@ -23,7 +42,7 @@ export const servicosService = {
    * Cria um novo serviço base
    */
   async criar({ nome, intervalo_dias_manutencao = 21, valor_padrao = 0 }) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const novo = {
         id: 's_' + Date.now(),
@@ -58,7 +77,7 @@ export const servicosService = {
    * Atualiza serviço base
    */
   async atualizar(id, dados) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.servicos_base.findIndex(s => s.id === id);
       if (index !== -1) {
@@ -83,7 +102,7 @@ export const servicosService = {
    * Exclui serviço base
    */
   async excluir(id) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       db.servicos_base = db.servicos_base.filter(s => s.id !== id);
       saveMockDB(db);

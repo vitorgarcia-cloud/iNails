@@ -17,9 +17,15 @@ export function NovoAgendamentoModal({
 }) {
   const [clienteId, setClienteId] = useState('');
   const [servicoId, setServicoId] = useState('');
-  const [dataHora, setDataHora] = useState(() => {
+  const [dataAtendimento, setDataAtendimento] = useState(() => {
     const d = dataInicial ? new Date(dataInicial) : new Date();
-    return format(d, "yyyy-MM-dd'T'14:00");
+    return format(d, 'yyyy-MM-dd');
+  });
+  const [horarioAtendimento, setHorarioAtendimento] = useState(() => {
+    if (dataInicial && typeof dataInicial === 'string' && dataInicial.includes('T')) {
+      return format(new Date(dataInicial), 'HH:mm');
+    }
+    return '14:00';
   });
   const [valor, setValor] = useState('');
   const [observacao, setObservacao] = useState('');
@@ -29,7 +35,10 @@ export function NovoAgendamentoModal({
   useEffect(() => {
     if (isOpen) {
       const d = dataInicial ? new Date(dataInicial) : new Date();
-      setDataHora(format(d, "yyyy-MM-dd'T'14:00"));
+      setDataAtendimento(format(d, 'yyyy-MM-dd'));
+      if (dataInicial && typeof dataInicial === 'string' && dataInicial.includes('T')) {
+        setHorarioAtendimento(format(new Date(dataInicial), 'HH:mm'));
+      }
     }
   }, [isOpen, dataInicial]);
 
@@ -45,8 +54,8 @@ export function NovoAgendamentoModal({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!clienteId || !servicoId || !dataHora) {
-      alert('Por favor, preencha cliente, serviço e data/horário.');
+    if (!clienteId || !servicoId || !dataAtendimento || !horarioAtendimento) {
+      alert('Por favor, preencha cliente, serviço, dia e horário.');
       return;
     }
 
@@ -55,11 +64,15 @@ export function NovoAgendamentoModal({
     const intervaloDias = servicoSelecionado?.intervalo_dias_manutencao || 21;
 
     try {
+      const [ano, mes, dia] = dataAtendimento.split('-').map(Number);
+      const [hora, min] = horarioAtendimento.split(':').map(Number);
+      const dataHoraObj = new Date(ano, mes - 1, dia, hora, min, 0);
+
       await onSalvar(
         {
           cliente_id: clienteId,
           servico_id: servicoId,
-          data_hora: new Date(dataHora).toISOString(),
+          data_hora: dataHoraObj.toISOString(),
           valor: parseFloat(valor) || 0,
           observacao,
         },
@@ -79,8 +92,9 @@ export function NovoAgendamentoModal({
 
   let textoDataPreset = '';
   try {
-    if (dataHora) {
-      const d = new Date(dataHora);
+    if (dataAtendimento) {
+      const [ano, mes, dia] = dataAtendimento.split('-').map(Number);
+      const d = new Date(ano, mes - 1, dia);
       const str = format(d, "EEEE, dd 'de' MMMM", { locale: ptBR });
       textoDataPreset = str.charAt(0).toUpperCase() + str.slice(1);
     }
@@ -148,14 +162,26 @@ export function NovoAgendamentoModal({
           ))}
         </Select>
 
-        {/* Data e Hora */}
-        <Input
-          label="Data e Horário *"
-          type="datetime-local"
-          value={dataHora}
-          onChange={(e) => setDataHora(e.target.value)}
-          required
-        />
+        {/* Dia e Horário em Labels Separados */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input
+            label="Dia do Atendimento *"
+            type="date"
+            value={dataAtendimento}
+            onChange={(e) => setDataAtendimento(e.target.value)}
+            icon={Calendar}
+            required
+          />
+
+          <Input
+            label="Horário *"
+            type="time"
+            value={horarioAtendimento}
+            onChange={(e) => setHorarioAtendimento(e.target.value)}
+            icon={Clock}
+            required
+          />
+        </div>
 
         {/* Valor Cobrado */}
         <Input

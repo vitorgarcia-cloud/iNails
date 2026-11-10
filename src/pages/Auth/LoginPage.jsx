@@ -5,23 +5,41 @@ import { useToast } from '../../hooks/useToast';
 import { isSupabaseConfigured } from '../../config/supabaseClient';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
-import { Sparkles, Mail, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
+import { Sparkles, Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 
 export function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [nomeEstudio, setNomeEstudio] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, loginDemo } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+
+  const handleTelefoneChange = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 2 && digits.length <= 7) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    } else if (digits.length > 7) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    setTelefone(formatted);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
+    const rawDigits = telefone.replace(/\D/g, '');
+    if (rawDigits.length < 10) {
+      toast.warning('Informe um número de telefone ou WhatsApp válido com DDD (Ex: 11 99999-9999).');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -32,7 +50,7 @@ export function LoginPage() {
         }
 
         const { error } = await signUp({
-          email: email.trim(),
+          telefone,
           password,
           nome: nome.trim(),
           nomeEstudio: nomeEstudio.trim(),
@@ -46,12 +64,12 @@ export function LoginPage() {
         }
       } else {
         const { error } = await signIn({
-          email: email.trim(),
+          telefone,
           password,
         });
 
         if (error) {
-          toast.error(error.message || 'Credenciais inválidas. Verifique seu e-mail e senha.');
+          toast.error(error.message || 'Telefone ou senha incorretos.');
         } else {
           toast.success('Login efetuado com sucesso!');
           navigate('/');
@@ -65,10 +83,7 @@ export function LoginPage() {
   const handleDemoLogin = async () => {
     setLoading(true);
     try {
-      await signIn({
-        email: 'jessica.nailflow@demo.com',
-        password: 'demopassword',
-      });
+      await loginDemo();
       toast.success('Acesso liberado no Modo Demonstração!');
       navigate('/');
     } finally {
@@ -88,13 +103,6 @@ export function LoginPage() {
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
             Gestão inteligente de ciclos, recorrência e finanças para Nail Designers
           </p>
-
-          {!isSupabaseConfigured && (
-            <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-800 rounded-full text-[11px] font-semibold">
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Modo Demonstração Ativo (Local)
-            </div>
-          )}
         </div>
 
         {/* Card do Formulário */}
@@ -143,12 +151,12 @@ export function LoginPage() {
             )}
 
             <Input
-              label="E-mail *"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              icon={Mail}
+              label="Telefone / WhatsApp *"
+              type="tel"
+              placeholder="(11) 99999-9999"
+              value={telefone}
+              onChange={handleTelefoneChange}
+              icon={Phone}
               required
             />
 
@@ -186,13 +194,13 @@ export function LoginPage() {
               icon={PlayCircle}
               disabled={loading}
             >
-              Entrar direto como Jéssica Silva (Demo)
+              Entrar no Modo Demonstração (Demo)
             </Button>
           </div>
         </div>
 
         <p className="text-center text-[11px] text-slate-400 mt-6">
-          NailFlow &copy; {new Date().getFullYear()} • PWA para Nail Designers
+          iNails &copy; {new Date().getFullYear()} • Gestão para Nail Designers
         </p>
       </div>
     </div>

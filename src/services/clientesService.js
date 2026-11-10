@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import { getMockDB, saveMockDB } from './mockData';
+import { isDemoSession } from './authService';
 import { differenceInDays, parseISO } from 'date-fns';
 
 export const clientesService = {
@@ -7,7 +8,7 @@ export const clientesService = {
    * Lista todos os clientes do usuário logado
    */
   async listar() {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       return { data: db.clientes, error: null };
     }
@@ -24,7 +25,7 @@ export const clientesService = {
    * Obtém detalhes de uma cliente por ID
    */
   async obterPorId(id) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const cliente = db.clientes.find(c => c.id === id);
       return { data: cliente || null, error: cliente ? null : 'Cliente não encontrada' };
@@ -43,7 +44,7 @@ export const clientesService = {
    * Cadastra nova cliente
    */
   async criar({ nome, telefone, data_nascimento, observacoes }) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const novo = {
         id: 'c_' + Date.now(),
@@ -80,7 +81,7 @@ export const clientesService = {
    * Atualiza dados de uma cliente
    */
   async atualizar(id, dados) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.clientes.findIndex(c => c.id === id);
       if (index !== -1) {
@@ -105,7 +106,7 @@ export const clientesService = {
    * Exclui cliente
    */
   async excluir(id) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       db.clientes = db.clientes.filter(c => c.id !== id);
       saveMockDB(db);
@@ -127,7 +128,7 @@ export const clientesService = {
   async obterMetricasCliente(clienteId) {
     let agendamentosCliente = [];
 
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       agendamentosCliente = (db.agendamentos || []).filter(
         a => a.cliente_id === clienteId && a.status === 'concluido'

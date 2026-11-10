@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService } from '../services/authService';
+import { authService, isDemoSession } from '../services/authService';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +7,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isDemo, setIsDemo] = useState(isDemoSession());
 
   // Inicializa sessão e listener de autenticação
   useEffect(() => {
@@ -18,10 +19,12 @@ export function AuthProvider({ children }) {
         if (mounted && data?.session?.user) {
           const currentUser = data.session.user;
           setUser(currentUser);
+          setIsDemo(isDemoSession());
           await loadUserProfile(currentUser.id);
         } else if (mounted) {
           setUser(null);
           setProfile(null);
+          setIsDemo(isDemoSession());
         }
       } catch (err) {
         console.error('Erro ao inicializar sessão:', err);
@@ -36,10 +39,12 @@ export function AuthProvider({ children }) {
       if (!mounted) return;
       if (session?.user) {
         setUser(session.user);
+        setIsDemo(isDemoSession());
         await loadUserProfile(session.user.id);
       } else {
         setUser(null);
         setProfile(null);
+        setIsDemo(false);
       }
       setLoading(false);
     });
@@ -63,14 +68,17 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signIn({ email, password }) {
+  async function signIn({ telefone, email, password }) {
     setLoading(true);
     try {
-      const { data, error } = await authService.signIn({ email, password });
+      // Aceita telefone prioritariamente
+      const tel = telefone || email;
+      const { data, error } = await authService.signIn({ telefone: tel, password });
       if (error) throw error;
       if (data?.session?.user || data?.user) {
         const loggedUser = data.session?.user || data.user;
         setUser(loggedUser);
+        setIsDemo(false);
         await loadUserProfile(loggedUser.id);
       }
       return { data, error: null };
@@ -81,15 +89,35 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signUp({ email, password, nome, nomeEstudio }) {
+  async function signUp({ telefone, email, password, nome, nomeEstudio }) {
     setLoading(true);
     try {
-      const { data, error } = await authService.signUp({ email, password, nome, nomeEstudio });
+      const tel = telefone || email;
+      const { data, error } = await authService.signUp({ telefone: tel, password, nome, nomeEstudio });
       if (error) throw error;
       if (data?.session?.user || data?.user) {
         const newUser = data.session?.user || data.user;
         setUser(newUser);
+        setIsDemo(false);
         await loadUserProfile(newUser.id);
+      }
+      return { data, error: null };
+    } catch (err) {
+      return { data: null, error: err };
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loginDemo() {
+    setLoading(true);
+    try {
+      const { data, error } = await authService.loginDemo();
+      if (error) throw error;
+      if (data?.session?.user) {
+        setUser(data.session.user);
+        setIsDemo(true);
+        await loadUserProfile(data.session.user.id);
       }
       return { data, error: null };
     } catch (err) {
@@ -105,6 +133,7 @@ export function AuthProvider({ children }) {
       await authService.signOut();
       setUser(null);
       setProfile(null);
+      setIsDemo(false);
     } finally {
       setLoading(false);
     }
@@ -123,9 +152,11 @@ export function AuthProvider({ children }) {
     user,
     profile,
     loading,
+    isDemo,
     isAuthenticated: Boolean(user),
     signIn,
     signUp,
+    loginDemo,
     signOut,
     updateProfile,
     refreshProfile: () => user && loadUserProfile(user.id),

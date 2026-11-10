@@ -162,21 +162,43 @@ CREATE POLICY "Usuários gerenciam apenas suas próprias despesas e insumos"
     WITH CHECK (auth.uid() = user_id);
 
 -- ==============================================================================
--- 9. AUTOMAÇÃO (TRIGGER): Criar perfil e serviços padrão no cadastro (Auth)
+-- 9. AUTOMAÇÃO (TRIGGERS): Confirmação automática e criação de perfil + catálogo inicial
 -- ==============================================================================
+
+-- 9.1 Auto-confirmação do cadastro para login direto por Telefone + Senha
+CREATE OR REPLACE FUNCTION public.handle_auto_confirm_user()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.email_confirmed_at := COALESCE(NEW.email_confirmed_at, now());
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_auto_confirm ON auth.users;
+CREATE TRIGGER on_auth_user_auto_confirm
+    BEFORE INSERT ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION public.handle_auto_confirm_user();
+
+-- 9.2 Criar perfil e serviços padrão no momento do cadastro
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
     nome_usuario TEXT;
     estudio_usuario TEXT;
+    telefone_usuario TEXT;
 BEGIN
     nome_usuario := COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1));
     estudio_usuario := COALESCE(NEW.raw_user_meta_data->>'nome_estudio', 'Studio ' || nome_usuario);
+    telefone_usuario := COALESCE(NEW.raw_user_meta_data->>'telefone', '');
 
     -- Insere o perfil padrão da profissional
-    INSERT INTO public.profiles (user_id, nome, nome_estudio)
-    VALUES (NEW.id, nome_usuario, estudio_usuario)
-    ON CONFLICT (user_id) DO NOTHING;
+    INSERT INTO public.profiles (user_id, nome, nome_estudio, telefone)
+    VALUES (NEW.id, nome_usuario, estudio_usuario, telefone_usuario)
+    ON CONFLICT (user_id) DO UPDATE
+    SET 
+        nome = CASE WHEN public.profiles.nome = '' THEN EXCLUDED.nome ELSE public.profiles.nome END,
+        nome_estudio = CASE WHEN public.profiles.nome_estudio = 'Meu Estúdio' THEN EXCLUDED.nome_estudio ELSE public.profiles.nome_estudio END,
+        telefone = CASE WHEN public.profiles.telefone = '' THEN EXCLUDED.telefone ELSE public.profiles.telefone END;
 
     -- Insere o catálogo de serviços essenciais padrão para a nova profissional
     INSERT INTO public.servicos_base (user_id, nome, intervalo_dias_manutencao, valor_padrao)
@@ -185,7 +207,8 @@ BEGIN
         (NEW.id, 'Manutenção Fibra de Vidro', 21, 95.00),
         (NEW.id, 'Esmaltação em Gel', 15, 60.00),
         (NEW.id, 'Banho de Gel', 21, 80.00),
-        (NEW.id, 'Manicure Tradicional', 7, 35.00);
+        (NEW.id, 'Manicure Tradicional', 7, 35.00)
+    ON CONFLICT DO NOTHING;
 
     RETURN NEW;
 END;

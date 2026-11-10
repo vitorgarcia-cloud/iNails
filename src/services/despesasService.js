@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import { getMockDB, saveMockDB } from './mockData';
+import { isDemoSession } from './authService';
 
 export const despesasService = {
   /**
@@ -8,7 +9,7 @@ export const despesasService = {
    * @param {'fixa'|'insumo'} [filtros.tipo]
    */
   async listar(filtros = {}) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       let list = [...(db.despesas_insumos || [])];
       if (filtros.tipo) {
@@ -43,7 +44,7 @@ export const despesasService = {
     qtd_reserva = 0,
     qtd_minima_alerta = 1
   }) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const novo = {
         id: 'd_' + Date.now(),
@@ -88,7 +89,7 @@ export const despesasService = {
    * Atualiza uma despesa ou insumo existente por completo
    */
   async atualizar(id, dados) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.despesas_insumos.findIndex(item => item.id === id);
       if (index !== -1) {
@@ -120,7 +121,7 @@ export const despesasService = {
    * Atualiza quantidades de estoque de um frasco/insumo
    */
   async atualizarEstoque(id, { qtd_uso, qtd_reserva, qtd_minima_alerta }) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.despesas_insumos.findIndex(item => item.id === id);
       if (index !== -1) {
@@ -154,7 +155,7 @@ export const despesasService = {
   async alternarStatusPagamento(id, statusAtual) {
     const novoStatus = statusAtual === 'pago' ? 'pendente' : 'pago';
 
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const index = db.despesas_insumos.findIndex(item => item.id === id);
       if (index !== -1) {
@@ -179,7 +180,7 @@ export const despesasService = {
    * Exclui despesa ou insumo
    */
   async excluir(id) {
-    if (!isSupabaseConfigured) {
+    if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       db.despesas_insumos = db.despesas_insumos.filter(item => item.id !== id);
       saveMockDB(db);
