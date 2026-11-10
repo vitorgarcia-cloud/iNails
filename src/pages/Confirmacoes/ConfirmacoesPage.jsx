@@ -236,7 +236,7 @@ export function ConfirmacoesPage() {
                         {cliente?.nome || 'Cliente'}
                       </h4>
                       <Badge variant="pendente" size="sm" dot>
-                        Aguardando D-1
+                        Aguardando
                       </Badge>
                     </div>
                     <p className="text-xs text-brand-600 font-semibold mt-0.5">

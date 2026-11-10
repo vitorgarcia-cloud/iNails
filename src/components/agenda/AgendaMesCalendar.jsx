@@ -88,7 +88,7 @@ export function AgendaMesCalendar({
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         try {
           navigator.vibrate(50);
-        } catch (_) {}
+        } catch (_) { }
       }
       onSelectData(dia);
       if (!ehMesmoMes) {
@@ -283,9 +283,8 @@ export function AgendaMesCalendar({
           {diasSemanaNomes.map((d, index) => (
             <div
               key={d}
-              className={`text-[11px] font-bold py-1 ${
-                index >= 5 ? 'text-slate-400' : 'text-slate-600'
-              }`}
+              className={`text-[11px] font-bold py-1 ${index >= 5 ? 'text-slate-400' : 'text-slate-600'
+                }`}
             >
               {d}
             </div>
@@ -397,13 +396,12 @@ export function AgendaMesCalendar({
                     {agendamentosDia.slice(0, 3).map((item, idx) => (
                       <span
                         key={idx}
-                        className={`w-1 h-1 rounded-full ${
-                          item.status === 'concluido'
+                        className={`w-1 h-1 rounded-full ${item.status === 'concluido'
                             ? 'bg-emerald-500'
                             : item.status === 'confirmado'
-                            ? 'bg-sky-500'
-                            : 'bg-amber-400'
-                        }`}
+                              ? 'bg-sky-500'
+                              : 'bg-amber-400'
+                          }`}
                       />
                     ))}
                     {agendamentosDia.length > 3 && (
