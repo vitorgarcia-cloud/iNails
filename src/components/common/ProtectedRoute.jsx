@@ -7,7 +7,7 @@ export function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <LoadingSpinner text="Iniciando NailFlow..." fullScreen />;
+    return <LoadingSpinner text="Iniciando iNails..." fullScreen />;
   }
 
   if (!isAuthenticated) {

@@ -11,11 +11,7 @@ import {
   ArrowLeft,
   Phone,
   Calendar,
-  DollarSign,
-  Clock,
   MessageCircle,
-  AlertTriangle,
-  CheckCircle2,
   FileText
 } from 'lucide-react';
 

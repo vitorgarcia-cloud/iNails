@@ -20,10 +20,7 @@ import {
   Calendar as CalendarIcon,
   Plus,
   Coffee,
-  Sparkles,
   PartyPopper,
-  Clock,
-  CheckCircle2,
   CalendarCheck2,
   MousePointerClick
 } from 'lucide-react';
@@ -44,7 +41,6 @@ export function AgendaMesCalendar({
   onStatusChange,
   onDelete,
   onEdit,
-  onVerDiaDetalhado,
 }) {
   const inicioMes = startOfMonth(mesAtual);
   const fimMes = endOfMonth(mesAtual);

@@ -16,7 +16,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Clock,
   CalendarDays,
   Coffee,
   PartyPopper
@@ -78,11 +77,6 @@ export function AgendaPage() {
     setModalAberto(true);
   };
 
-  const handleVerDiaDetalhado = (data) => {
-    setDataSelecionada(data);
-    setVisualizacao('dia');
-  };
-
   return (
     <div className="flex flex-col gap-4">
       {/* Topo com Título e Botão de Agendar */}
@@ -130,7 +124,6 @@ export function AgendaPage() {
           onStatusChange={atualizarStatus}
           onDelete={removerAgendamento}
           onEdit={(item) => setAgendamentoEmEdicao(item)}
-          onVerDiaDetalhado={handleVerDiaDetalhado}
         />
       )}
 

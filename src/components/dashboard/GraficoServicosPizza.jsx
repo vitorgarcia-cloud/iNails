@@ -4,7 +4,7 @@ import Badge from '../ui/Badge';
 import { formatMoeda } from '../../utils/formatters';
 import { subMonths, parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { PieChart as PieChartIcon, Scissors, Award, Calendar } from 'lucide-react';
+import { PieChart as PieChartIcon } from 'lucide-react';
 
 const CORES_PALETA = [
   '#FF8894', // Vermelho Coral Marca (iNails)

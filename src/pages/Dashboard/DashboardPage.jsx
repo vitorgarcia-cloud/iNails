@@ -8,7 +8,6 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import MonthFilter from '../../components/dashboard/MonthFilter';
 import GraficoFaturamentoCustos from '../../components/dashboard/GraficoFaturamentoCustos';
 import GraficoServicosPizza from '../../components/dashboard/GraficoServicosPizza';
-import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { formatMoeda } from '../../utils/formatters';
@@ -16,13 +15,11 @@ import {
   DollarSign,
   TrendingDown,
   TrendingUp,
-  Sparkles,
   CalendarCheck,
   Plus,
-  MessageCircle,
-  Scissors
+  MessageCircle
 } from 'lucide-react';
-import { startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
+import { parseISO, isSameMonth } from 'date-fns';
 
 export function DashboardPage() {
   const { profile } = useAuth();
@@ -40,7 +37,6 @@ export function DashboardPage() {
   const [totalCustos, setTotalCustos] = useState(0);
   const [lucroLiquido, setLucroLiquido] = useState(0);
   const [qtdAtendimentos, setQtdAtendimentos] = useState(0);
-  const [servicosMaisFeitos, setServicosMaisFeitos] = useState([]);
 
   useEffect(() => {
     async function carregarDadosCompletos() {
@@ -91,22 +87,10 @@ export function DashboardPage() {
           0
         );
 
-        // 3. Contagem de serviços mais realizados no mês corrente
-        const contagemServicos = {};
-        concluidosDoMes.forEach((a) => {
-          const nomeServico = a.servicos_base?.nome || 'Outros';
-          contagemServicos[nomeServico] = (contagemServicos[nomeServico] || 0) + 1;
-        });
-
-        const ranking = Object.entries(contagemServicos)
-          .map(([nome, qtd]) => ({ nome, qtd }))
-          .sort((a, b) => b.qtd - a.qtd);
-
         setFaturamentoBruto(bruto);
         setTotalCustos(custos);
         setLucroLiquido(bruto - custos);
         setQtdAtendimentos(concluidosDoMes.length);
-        setServicosMaisFeitos(ranking);
       } catch (err) {
         console.error('Erro ao carregar métricas:', err);
       } finally {
@@ -181,57 +165,6 @@ export function DashboardPage() {
               variant="default"
             />
           </div>
-
-          {/* Gráfico Visual de Distribuição Financeira */}
-          <Card padding="p-4.5" className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Saúde Financeira do Mês
-              </h3>
-              <span className="text-xs font-bold text-slate-700">
-                {faturamentoBruto > 0
-                  ? `${Math.max(0, Math.round((lucroLiquido / faturamentoBruto) * 100))}% de Margem`
-                  : '0% Margem'}
-              </span>
-            </div>
-
-            {/* Barra de Progresso Faturamento vs Custos */}
-            <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
-              <div
-                style={{
-                  width: `${
-                    faturamentoBruto > 0
-                      ? Math.min(100, Math.round((totalCustos / faturamentoBruto) * 100))
-                      : 0
-                  }%`,
-                }}
-                className="bg-rose-400 h-full transition-all duration-500"
-                title="Custos"
-              />
-              <div
-                style={{
-                  width: `${
-                    faturamentoBruto > 0
-                      ? Math.max(0, Math.round((lucroLiquido / faturamentoBruto) * 100))
-                      : 0
-                  }%`,
-                }}
-                className="bg-emerald-400 h-full transition-all duration-500"
-                title="Lucro"
-              />
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-                <span>Custos: {formatMoeda(totalCustos)}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span>Lucro Líquido: {formatMoeda(lucroLiquido)}</span>
-              </div>
-            </div>
-          </Card>
 
           {/* GRÁFICO 1 SOLICITADO: Faturamento vs Custos em Colunas (Filtros: Ano, Mês, Semana) */}
           <GraficoFaturamentoCustos

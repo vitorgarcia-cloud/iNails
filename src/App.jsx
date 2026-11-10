@@ -8,7 +8,7 @@ import AppLayout from './components/layout/AppLayout';
 import PWAInstallPrompt from './components/common/PWAInstallPrompt';
 import PWAInstructionsModal from './components/common/PWAInstructionsModal';
 
-// Páginas da Aplicação NailFlow
+// Páginas da Aplicação iNails
 import LoginPage from './pages/Auth/LoginPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import AgendaPage from './pages/Agenda/AgendaPage';

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-import { isSupabaseConfigured } from '../../config/supabaseClient';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import { Sparkles, Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';

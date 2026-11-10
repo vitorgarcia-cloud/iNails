@@ -28,9 +28,7 @@ import {
   Coffee,
   MessageCircle,
   Save,
-  Image as ImageIcon,
   Upload,
-  RefreshCw,
   Smartphone,
   Download,
   CheckCircle2

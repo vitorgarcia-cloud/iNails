@@ -27,11 +27,7 @@ import { ptBR } from 'date-fns/locale';
 import {
   BarChart3,
   ChevronLeft,
-  ChevronRight,
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar
+  ChevronRight
 } from 'lucide-react';
 
 export function GraficoFaturamentoCustos({

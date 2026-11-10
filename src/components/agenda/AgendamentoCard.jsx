@@ -2,7 +2,7 @@ import React from 'react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import { formatDataBR, formatHoraBR, formatMoeda } from '../../utils/formatters';
-import { Clock, User, CheckCircle2, XCircle, RefreshCw, Trash2, Edit2 } from 'lucide-react';
+import { Clock, User, RefreshCw, Trash2, Edit2 } from 'lucide-react';
 
 export function AgendamentoCard({
   agendamento,

@@ -14,7 +14,6 @@ import {
   Clock,
   Sparkles,
   CheckCircle2,
-  Send,
   Play,
   RotateCcw,
   Check,
@@ -59,7 +58,7 @@ export function ConfirmacoesPage() {
     const nomeCliente = agendamento.clientes?.nome || 'Cliente';
     const telefone = agendamento.clientes?.telefone || '';
     const nomeServico = agendamento.servicos_base?.nome || 'atendimento';
-    const nomeEstudio = profile?.nome_estudio || 'Studio NailFlow';
+    const nomeEstudio = profile?.nome_estudio || 'Studio iNails';
 
     if (!telefone) {
       toast.warning('Esta cliente não possui número de telefone cadastrado.');

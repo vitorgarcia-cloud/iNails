@@ -3,7 +3,7 @@ import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Button from '../ui/Button';
-import { Calendar, Clock, DollarSign, Edit3, CheckCircle2 } from 'lucide-react';
+import { Calendar, Clock, DollarSign, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function EditarAgendamentoModal({
