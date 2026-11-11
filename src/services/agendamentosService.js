@@ -98,16 +98,20 @@ export const agendamentosService = {
   /**
    * Cria novo agendamento com opção de projeção de recorrência automática
    */
-  async criar({
-    cliente_id,
-    servico_id,
-    data_hora,
-    valor,
-    observacao = '',
-    gerarProjecoes = false,
-    intervaloDias = 21,
-    qtdCiclos = 3
-  }) {
+  async criar(dados = {}, opcoes = {}) {
+    const {
+      cliente_id,
+      servico_id,
+      data_hora,
+      valor,
+      observacao = '',
+    } = dados;
+
+    const gerarProjecoes = Boolean(opcoes.gerarProjecoes ?? dados.gerarProjecoes ?? false);
+    const intervaloDias = Number(opcoes.intervaloDias ?? dados.intervaloDias ?? 21);
+    const qtdCiclos = Number(opcoes.qtdCiclos ?? dados.qtdCiclos ?? 2);
+    const diasTrabalho = opcoes.diasTrabalho ?? dados.diasTrabalho ?? [1, 2, 3, 4, 5, 6];
+
     const novoAgendamento = {
       cliente_id,
       servico_id,
@@ -124,25 +128,26 @@ export const agendamentosService = {
       const principal = {
         ...novoAgendamento,
         id: idPrincipal,
-        user_id: db.profile.user_id,
+        user_id: db.profile?.user_id || 'demo-user-id',
         created_at: new Date().toISOString()
       };
       db.agendamentos.push(principal);
 
-      // Gerar projeções futuras se solicitado
+      // Gerar manutenções futuras se solicitado
       if (gerarProjecoes && intervaloDias > 0) {
-        const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos);
+        const perfilDias = db.profile?.dias_trabalho || diasTrabalho;
+        const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos, perfilDias);
         projecoes.forEach(proj => {
           db.agendamentos.push({
-            id: 'a_rec_' + Date.now() + '_' + proj.ciclo,
-            user_id: db.profile.user_id,
+            id: 'a_rec_' + Date.now() + '_' + proj.ciclo + '_' + Math.random().toString(36).substring(2, 6),
+            user_id: db.profile?.user_id || 'demo-user-id',
             cliente_id,
             servico_id,
             data_hora: proj.dataISO,
             valor: Number(valor || 0),
             status: 'pendente',
             is_recorrente: true,
-            observacao: `[Recorrência Automática] Manutenção Ciclo ${proj.ciclo}`,
+            observacao: `[Manutenção ${proj.ciclo}/2] Próxima manutenção sugerida`,
             created_at: new Date().toISOString()
           });
         });
@@ -166,9 +171,9 @@ export const agendamentosService = {
 
     if (errPrincipal) return { data: null, error: errPrincipal };
 
-    // 2. Cria projeções de agendamentos no banco para os próximos meses
+    // 2. Cria projeções de agendamentos no banco para as próximas manutenções
     if (gerarProjecoes && intervaloDias > 0) {
-      const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos);
+      const projecoes = calcularProximasManutencoes(data_hora, intervaloDias, qtdCiclos, diasTrabalho);
       const registrosProjecoes = projecoes.map(proj => ({
         user_id: user?.id,
         cliente_id,
@@ -177,7 +182,7 @@ export const agendamentosService = {
         valor: Number(valor || 0),
         status: 'pendente',
         is_recorrente: true,
-        observacao: `[Recorrência Automática] Manutenção Ciclo ${proj.ciclo}`,
+        observacao: `[Manutenção ${proj.ciclo}/2] Próxima manutenção sugerida`,
       }));
 
       await supabase.from('agendamentos').insert(registrosProjecoes);

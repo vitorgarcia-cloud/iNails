@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -6,6 +6,8 @@ import Button from '../ui/Button';
 import { Calendar, Clock, DollarSign, Repeat } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useAuth } from '../../hooks/useAuth';
+import { calcularProximasManutencoes } from '../../utils/recurrence';
 
 export function NovoAgendamentoModal({
   isOpen,
@@ -15,6 +17,9 @@ export function NovoAgendamentoModal({
   dataInicial,
   onSalvar,
 }) {
+  const { profile } = useAuth();
+  const diasTrabalho = profile?.dias_trabalho || [1, 2, 3, 4, 5, 6];
+
   const [clienteId, setClienteId] = useState('');
   const [servicoId, setServicoId] = useState('');
   const [dataAtendimento, setDataAtendimento] = useState(() => {
@@ -52,6 +57,22 @@ export function NovoAgendamentoModal({
     }
   };
 
+  const servicoSelecionado = servicos.find((s) => s.id === servicoId);
+  const intervaloDias = servicoSelecionado?.intervalo_dias_manutencao || 21;
+
+  // Pré-visualização das 2 próximas manutenções
+  const projecoesPrevia = useMemo(() => {
+    if (!dataAtendimento || !horarioAtendimento || !intervaloDias) return [];
+    try {
+      const [ano, mes, dia] = dataAtendimento.split('-').map(Number);
+      const [hora, min] = horarioAtendimento.split(':').map(Number);
+      const dataHoraObj = new Date(ano, mes - 1, dia, hora, min, 0);
+      return calcularProximasManutencoes(dataHoraObj, intervaloDias, 2, diasTrabalho);
+    } catch {
+      return [];
+    }
+  }, [dataAtendimento, horarioAtendimento, intervaloDias, diasTrabalho]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!clienteId || !servicoId || !dataAtendimento || !horarioAtendimento) {
@@ -60,8 +81,6 @@ export function NovoAgendamentoModal({
     }
 
     setLoading(true);
-    const servicoSelecionado = servicos.find((s) => s.id === servicoId);
-    const intervaloDias = servicoSelecionado?.intervalo_dias_manutencao || 21;
 
     try {
       const [ano, mes, dia] = dataAtendimento.split('-').map(Number);
@@ -75,11 +94,16 @@ export function NovoAgendamentoModal({
           data_hora: dataHoraObj.toISOString(),
           valor: parseFloat(valor) || 0,
           observacao,
+          gerarProjecoes,
+          intervaloDias,
+          qtdCiclos: 2,
+          diasTrabalho,
         },
         {
           gerarProjecoes,
           intervaloDias,
-          qtdCiclos: 3,
+          qtdCiclos: 2,
+          diasTrabalho,
         }
       );
       onClose();
@@ -87,8 +111,6 @@ export function NovoAgendamentoModal({
       setLoading(false);
     }
   };
-
-  const servicoSelecionado = servicos.find((s) => s.id === servicoId);
 
   let textoDataPreset = '';
   try {
@@ -202,30 +224,61 @@ export function NovoAgendamentoModal({
           onChange={(e) => setObservacao(e.target.value)}
         />
 
-        {/* Card de Recorrência Inteligente */}
+        {/* Card de Recorrência Inteligente (Próximas 2 Manutenções) */}
         {servicoSelecionado && (
-          <div className="bg-brand-50/60 border border-brand-200/80 rounded-2xl p-3.5 flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Repeat className="w-4 h-4 text-brand-600" />
-                <span className="text-xs font-bold text-brand-900">
-                  Recorrência Inteligente (Manutenções)
-                </span>
+          <div className="bg-brand-50/80 border border-brand-200 rounded-2xl p-3.5 flex flex-col gap-2.5">
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={gerarProjecoes}
+                onChange={(e) => setGerarProjecoes(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer accent-brand-600"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-1.5">
+                  <Repeat className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+                  <span className="text-xs font-bold text-slate-900">
+                    Agendar próximas 2 manutenções automaticamente
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">
+                  Gera 2 manutenções a cada <strong>{intervaloDias} dias</strong>. Folgas e feriados são jogados automaticamente para o dia mais próximo.
+                </p>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={gerarProjecoes}
-                  onChange={(e) => setGerarProjecoes(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-brand-500"></div>
-              </label>
-            </div>
-            <p className="text-[11px] text-brand-800 leading-relaxed">
-              Com o intervalo de <strong>{servicoSelecionado.intervalo_dias_manutencao} dias</strong>, 
-              o sistema criará automaticamente as projeções dos próximos 3 ciclos na sua agenda.
-            </p>
+            </label>
+
+            {/* Pré-visualização das 2 datas geradas */}
+            {gerarProjecoes && projecoesPrevia.length > 0 && (
+              <div className="bg-white/90 rounded-xl p-2.5 border border-brand-200/70 flex flex-col gap-1.5 mt-0.5 text-xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700">
+                  Datas programadas das manutenções:
+                </span>
+                {projecoesPrevia.map((p) => (
+                  <div
+                    key={p.ciclo}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between py-1 border-b last:border-b-0 border-slate-100 gap-1"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-md bg-brand-100 text-brand-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                        {p.ciclo}ª
+                      </span>
+                      <span className="font-semibold text-slate-800 text-xs">
+                        {format(p.data, "EEEE, dd 'de' MMMM", { locale: ptBR })} às {horarioAtendimento}
+                      </span>
+                    </div>
+
+                    {p.ajustado && (
+                      <span
+                        className="text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-md self-start sm:self-auto"
+                        title={`Data original (${format(p.dataCalculada, 'dd/MM')}) era ${p.motivo}`}
+                      >
+                        Ajustado ({p.motivo})
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

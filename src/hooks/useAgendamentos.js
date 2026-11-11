@@ -30,8 +30,8 @@ export function useAgendamentos(filtros = {}) {
       if (error) throw error;
       await carregarAgendamentos();
       toast.success(
-        opcoes?.gerarProjecoes
-          ? 'Agendamento e projeções de manutenção geradas!'
+        opcoes?.gerarProjecoes || dados?.gerarProjecoes
+          ? 'Agendamento e as 2 próximas manutenções agendadas com sucesso!'
           : 'Agendamento salvo com sucesso!'
       );
       return { data, error: null };
