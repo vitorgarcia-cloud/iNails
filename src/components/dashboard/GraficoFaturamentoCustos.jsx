@@ -277,7 +277,7 @@ export function GraficoFaturamentoCustos({
   const itemAtivo = itemSelecionado || dadosGrafico[dadosGrafico.length - 1];
 
   return (
-    <Card padding="p-4.5" className="flex flex-col gap-3">
+    <Card padding="p-[5px]" className="flex flex-col gap-3">
       {/* Topo: Título e Alternador de Filtro (Ano / Mês / Semana) */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div>

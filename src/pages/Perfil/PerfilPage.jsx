@@ -34,34 +34,6 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-const AVATAR_PRESETS = [
-  {
-    id: 'preset-logo',
-    label: 'Logo Oficial iNails',
-    url: '/logo.png',
-  },
-  {
-    id: 'preset-1',
-    label: 'Studio Delicado',
-    url: 'https://images.unsplash.com/photo-1595475243692-392820991677?w=240&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-2',
-    label: 'Nail Designer',
-    url: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=240&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-3',
-    label: 'Espaço Luxo',
-    url: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?w=240&auto=format&fit=crop&q=80',
-  },
-  {
-    id: 'preset-4',
-    label: 'Esmaltação & Arte',
-    url: 'https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=240&auto=format&fit=crop&q=80',
-  },
-];
-
 const DIAS_SEMANA = [
   { id: 1, nome: 'Segunda-feira', abrev: 'Seg' },
   { id: 2, nome: 'Terça-feira', abrev: 'Ter' },
@@ -111,7 +83,7 @@ export function PerfilPage() {
       setNome(profile.nome || '');
       setNomeEstudio(profile.nome_estudio || '');
       setTelefone(profile.telefone || '');
-      setFotoUrl(profile.foto_url || AVATAR_PRESETS[0].url);
+      setFotoUrl(profile.foto_url || '/logo.png');
       setEndereco(profile.endereco || '');
       setInstagram(profile.instagram || '');
       setChavePix(profile.chave_pix || '');
@@ -239,32 +211,20 @@ export function PerfilPage() {
   return (
     <div className="flex flex-col gap-4">
       {/* Cabeçalho */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
-            Perfil & Estúdio
-          </h1>
-          <p className="text-xs text-slate-450 mt-0.5">
-            Configure seu negócio, dias de atendimento e catálogo de serviços
-          </p>
-        </div>
-
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={handleSalvarPerfil}
-          loading={salvando}
-          icon={Save}
-        >
-          Salvar
-        </Button>
+      <div>
+        <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">
+          Perfil & Estúdio
+        </h1>
+        <p className="text-xs text-slate-450 mt-0.5">
+          Configure seu negócio, dias de atendimento e catálogo de serviços
+        </p>
       </div>
 
       {/* Tabs de Navegação */}
       <Tabs
         tabs={[
           { id: 'geral', label: 'Meu Estúdio' },
-          { id: 'jornada', label: 'Dias & Folgas' },
+          { id: 'jornada', label: 'Dias' },
           { id: 'servicos', label: 'Serviços' },
           { id: 'whatsapp', label: 'WhatsApp' },
         ]}
@@ -272,22 +232,22 @@ export function PerfilPage() {
         onChange={setAbaAtiva}
       />
 
-      {/* ABA 1: DADOS GERAIS & FOTO DO ESTABELECIMENTO */}
+      {/* ABA 1: MEU ESTÚDIO (SIMPLIFICADO) */}
       {abaAtiva === 'geral' && (
         <div className="flex flex-col gap-4">
-          <Card className="flex flex-col gap-4" padding="p-4">
+          {/* Identidade Visual / Logo */}
+          <Card className="flex flex-col gap-3.5" padding="p-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <Store className="w-4 h-4 text-brand-500" />
-              Identidade Visual do Estúdio
+              Identidade Visual
             </h3>
 
-            {/* Preview do Avatar e Nome */}
-            <div className="flex items-center gap-4 p-3 bg-slate-50 rounded-2xl border border-slate-100">
-              <div className="relative group">
+            <div className="flex items-center gap-4">
+              <div className="relative group shrink-0">
                 <img
-                  src={fotoUrl || AVATAR_PRESETS[0].url}
+                  src={fotoUrl || '/logo.png'}
                   alt="Logo do Estúdio"
-                  className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-400 shadow-sm"
+                  className="w-16 h-16 rounded-2xl object-cover border-2 border-brand-200 shadow-xs bg-brand-50"
                 />
                 <label className="absolute inset-0 bg-slate-900/40 rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
                   <Upload className="w-5 h-5 text-white" />
@@ -301,106 +261,83 @@ export function PerfilPage() {
               </div>
 
               <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-extrabold text-slate-900 truncate">
+                <h4 className="text-sm font-bold text-slate-900 truncate">
                   {nomeEstudio || 'Nome do Estúdio'}
                 </h4>
-                <p className="text-xs text-brand-600 font-semibold truncate">
-                  {nome || 'Sua Assinatura Profissional'}
+                <p className="text-xs text-slate-500 mb-2 truncate">
+                  {nome || 'Nome da profissional'}
                 </p>
-                <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-                  {endereco || 'Endereço não configurado'}
-                </p>
-              </div>
-            </div>
 
-            {/* Presets Rápidos de Foto */}
-            <div>
-              <span className="text-xs font-semibold text-slate-700 block mb-2">
-                Escolha uma foto ou preset profissional:
-              </span>
-              <div className="grid grid-cols-4 gap-2">
-                {AVATAR_PRESETS.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => setFotoUrl(p.url)}
-                    className={`
-                      relative rounded-xl overflow-hidden border-2 transition-all p-0.5
-                      ${fotoUrl === p.url ? 'border-brand-500 ring-2 ring-brand-300' : 'border-slate-200 hover:border-slate-300'}
-                    `}
-                  >
-                    <img
-                      src={p.url}
-                      alt={p.label}
-                      className="w-full h-12 object-cover rounded-lg"
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition-colors">
+                      <Upload className="w-3.5 h-3.5" />
+                      Alterar Foto / Logo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUploadFoto}
+                      className="hidden"
                     />
-                    {fotoUrl === p.url && (
-                      <div className="absolute top-1 right-1 bg-brand-500 text-white rounded-full p-0.5 shadow-xs">
-                        <Check className="w-2.5 h-2.5" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  </label>
 
-            {/* Upload de Arquivo ou URL Customizada */}
-            <div className="flex items-center gap-2">
-              <label className="flex-1 cursor-pointer">
-                <div className="flex items-center justify-center gap-2 px-3 py-2 border border-slate-200 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 transition-colors">
-                  <Upload className="w-3.5 h-3.5 text-brand-500" />
-                  <span>Enviar Foto do Celular/PC</span>
+                  {fotoUrl && fotoUrl !== '/logo.png' && (
+                    <button
+                      type="button"
+                      onClick={() => setFotoUrl('/logo.png')}
+                      className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      Padrão
+                    </button>
+                  )}
                 </div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleUploadFoto}
-                  className="hidden"
-                />
-              </label>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setFotoUrl(AVATAR_PRESETS[0].url)}
-                className="text-slate-400 hover:text-slate-600 text-xs"
-                title="Restaurar imagem padrão"
-              >
-                Padrão
-              </Button>
+              </div>
             </div>
           </Card>
 
-          {/* Dados Cadastrais */}
+          {/* Dados do Estúdio */}
           <Card className="flex flex-col gap-3" padding="p-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <User className="w-4 h-4 text-brand-500" />
-              Informações do Estabelecimento
+              Informações do Estúdio
             </h3>
 
-            <Input
-              label="Nome da Profissional / Nail Designer"
-              placeholder="Ex: Jéssica Silva"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              icon={User}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Nome do Salão ou Estúdio"
+                placeholder="Ex: Studio Jéssica Silva Nails"
+                value={nomeEstudio}
+                onChange={(e) => setNomeEstudio(e.target.value)}
+                icon={Store}
+              />
 
-            <Input
-              label="Nome do Salão ou Estúdio"
-              placeholder="Ex: Studio Jéssica Silva Nails"
-              value={nomeEstudio}
-              onChange={(e) => setNomeEstudio(e.target.value)}
-              icon={Store}
-            />
+              <Input
+                label="Nome da Profissional / Nail Designer"
+                placeholder="Ex: Jéssica Silva"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                icon={User}
+              />
+            </div>
 
-            <Input
-              label="WhatsApp / Telefone de Contato"
-              placeholder="(11) 98765-4321"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              icon={Phone}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="WhatsApp / Telefone de Contato"
+                placeholder="(11) 98765-4321"
+                value={telefone}
+                onChange={(e) => setTelefone(e.target.value)}
+                icon={Phone}
+              />
+
+              <Input
+                label="Instagram / Redes Sociais"
+                placeholder="@seu.estudio"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+                icon={AtSign}
+              />
+            </div>
 
             <Input
               label="Endereço / Local de Atendimento"
@@ -409,27 +346,16 @@ export function PerfilPage() {
               onChange={(e) => setEndereco(e.target.value)}
               icon={MapPin}
             />
-
-            <Input
-              label="Instagram / Redes Sociais"
-              placeholder="@seu.estudio"
-              value={instagram}
-              onChange={(e) => setInstagram(e.target.value)}
-              icon={AtSign}
-            />
           </Card>
 
-          {/* Chave Pix para Recebimentos */}
+          {/* Chave Pix para Cobrança / Sinais */}
           <Card className="flex flex-col gap-3" padding="p-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <QrCode className="w-4 h-4 text-brand-500" />
-              Chave Pix para Cobrança / Sinais
+              Chave Pix para Recebimentos
             </h3>
-            <p className="text-xs text-slate-500">
-              Esta chave pode ser inserida automaticamente nas confirmações de agendamento.
-            </p>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Chave Pix"
                 placeholder="Ex: 11987654321 ou chave@email.com"
@@ -452,47 +378,43 @@ export function PerfilPage() {
             </div>
           </Card>
 
-          {/* Atalho & Aplicativo na Tela Inicial (PWA) */}
-          <Card className="flex flex-col gap-3.5 border-brand-200/80 bg-gradient-to-br from-brand-50/40 via-white to-brand-50/20 shadow-sm" padding="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 text-white flex items-center justify-center shadow-md shadow-brand-500/20 shrink-0">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">
-                    Atalho na Tela Inicial (Aplicativo)
-                  </h3>
-                  <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
-                    Instale o iNails no seu celular ou computador para abrir com um toque, tela cheia e sem barra de navegação.
-                  </p>
-                </div>
+          {/* Atalho na Tela Inicial (Aplicativo) */}
+          <Card className="flex flex-col gap-3 border-brand-100 bg-brand-50/20" padding="p-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-brand-500 text-white flex items-center justify-center shrink-0">
+                <Smartphone className="w-4.5 h-4.5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-sm font-bold text-slate-900">
+                  Aplicativo iNails
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Instale na tela inicial para acesso rápido e em tela cheia.
+                </p>
               </div>
             </div>
 
             {isInstalled ? (
-              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2.5 text-xs text-emerald-800 font-semibold">
+              <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-2.5 flex items-center gap-2 text-xs text-emerald-800 font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>O aplicativo já está instalado neste dispositivo!</span>
+                <span>Aplicativo já instalado neste dispositivo</span>
               </div>
             ) : (
-              <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 <Button
                   variant="primary"
                   size="sm"
-                  fullWidth
                   icon={Download}
                   onClick={installApp}
                 >
-                  Criar Atalho na Tela Inicial
+                  Instalar App
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
-                  fullWidth
                   onClick={openInstrucoes}
                 >
-                  Ver Instruções
+                  Instruções
                 </Button>
               </div>
             )}
@@ -504,15 +426,10 @@ export function PerfilPage() {
       {abaAtiva === 'jornada' && (
         <div className="flex flex-col gap-4">
           <Card className="flex flex-col gap-3" padding="p-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-                <Calendar className="w-4 h-4 text-brand-500" />
-                Dias de Atendimento na Semana
-              </h3>
-              <span className="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full">
-                {diasTrabalho.length} dias ativos
-              </span>
-            </div>
+            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+              <Calendar className="w-4 h-4 text-brand-500" />
+              Atendimento na semana
+            </h3>
             <p className="text-xs text-slate-500">
               Selecione os dias em que você trabalha. Os dias desmarcados serão exibidos com cor de <strong>Folga</strong> na agenda mensal.
             </p>
@@ -655,7 +572,6 @@ export function PerfilPage() {
                       <span className="font-extrabold text-brand-700">
                         {formatMoeda(servico.valor_padrao)}
                       </span>
-                      <span>• Retorno sugerido a cada {servico.intervalo_dias_manutencao || 21}d</span>
                     </div>
                   </div>
 

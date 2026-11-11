@@ -1,15 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { User, Phone, Calendar, FileText } from 'lucide-react';
 
-export function NovoClienteModal({ isOpen, onClose, onSalvar }) {
+/**
+ * Modal de cadastro e edição de cliente.
+ * Se a prop `cliente` for informada, o modal abre em modo de edição com os dados preenchidos.
+ */
+export function NovoClienteModal({ isOpen, onClose, onSalvar, cliente = null }) {
+  const isEdicao = Boolean(cliente);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [dataNascimento, setDataNascimento] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setNome(cliente?.nome || '');
+      setTelefone(cliente?.telefone || '');
+      setDataNascimento(cliente?.data_nascimento || '');
+      setObservacoes(cliente?.observacoes || '');
+    }
+  }, [isOpen, cliente]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -20,18 +34,13 @@ export function NovoClienteModal({ isOpen, onClose, onSalvar }) {
 
     setLoading(true);
     try {
-      await onSalvar({
+      const { error } = (await onSalvar({
         nome: nome.trim(),
         telefone: telefone.trim(),
         data_nascimento: dataNascimento || null,
         observacoes: observacoes.trim(),
-      });
-      // Limpa formulário
-      setNome('');
-      setTelefone('');
-      setDataNascimento('');
-      setObservacoes('');
-      onClose();
+      })) || {};
+      if (!error) onClose();
     } finally {
       setLoading(false);
     }
@@ -41,8 +50,12 @@ export function NovoClienteModal({ isOpen, onClose, onSalvar }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Nova Cliente"
-      description="Cadastre os dados de contato e preferências da cliente"
+      title={isEdicao ? 'Editar Cliente' : 'Nova Cliente'}
+      description={
+        isEdicao
+          ? 'Atualize os dados de contato e preferências da cliente'
+          : 'Cadastre os dados de contato e preferências da cliente'
+      }
     >
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <Input
@@ -85,7 +98,7 @@ export function NovoClienteModal({ isOpen, onClose, onSalvar }) {
             Cancelar
           </Button>
           <Button variant="primary" fullWidth type="submit" loading={loading}>
-            Cadastrar Cliente
+            {isEdicao ? 'Salvar Alterações' : 'Cadastrar Cliente'}
           </Button>
         </div>
       </form>

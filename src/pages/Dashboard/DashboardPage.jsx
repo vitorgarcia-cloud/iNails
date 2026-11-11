@@ -8,6 +8,7 @@ import KpiCard from '../../components/dashboard/KpiCard';
 import MonthFilter from '../../components/dashboard/MonthFilter';
 import GraficoFaturamentoCustos from '../../components/dashboard/GraficoFaturamentoCustos';
 import GraficoServicosPizza from '../../components/dashboard/GraficoServicosPizza';
+import GraficoTopClientes from '../../components/dashboard/GraficoTopClientes';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { formatMoeda } from '../../utils/formatters';
@@ -178,6 +179,9 @@ export function DashboardPage() {
             agendamentos={todosAgendamentos}
             servicos={todosServicos}
           />
+
+          {/* Top 5 Clientes: mais atendidas e que mais dão lucro (Colunas) */}
+          <GraficoTopClientes agendamentos={todosAgendamentos} />
 
           {/* Card de Atalho para Régua D-1 */}
           <div

@@ -130,7 +130,7 @@ export function GraficoServicosPizza({
   const selecionado = servicoAtivo || dadosPizza[0];
 
   return (
-    <Card padding="p-4.5" className="flex flex-col gap-3">
+    <Card padding="p-[5px]" className="flex flex-col gap-3">
       {/* Topo do Card */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-3">
         <div>

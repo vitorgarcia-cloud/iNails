@@ -9,9 +9,34 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { Search, Plus, Users } from 'lucide-react';
 
 export function ClientesPage() {
-  const { clientes, carregando, adicionarCliente } = useClientes();
+  const { clientes, carregando, adicionarCliente, atualizarCliente, removerCliente } = useClientes();
   const [busca, setBusca] = useState('');
   const [modalAberto, setModalAberto] = useState(false);
+  const [clienteEmEdicao, setClienteEmEdicao] = useState(null);
+
+  const abrirNovo = () => {
+    setClienteEmEdicao(null);
+    setModalAberto(true);
+  };
+
+  const abrirEdicao = (cliente) => {
+    setClienteEmEdicao(cliente);
+    setModalAberto(true);
+  };
+
+  const fecharModal = () => {
+    setModalAberto(false);
+    setClienteEmEdicao(null);
+  };
+
+  const handleSalvar = (dados) =>
+    clienteEmEdicao ? atualizarCliente(clienteEmEdicao.id, dados) : adicionarCliente(dados);
+
+  const handleExcluir = async (cliente) => {
+    if (window.confirm(`Excluir a cliente "${cliente.nome}"? Os agendamentos dela também serão removidos.`)) {
+      await removerCliente(cliente.id);
+    }
+  };
 
   // Filtro por nome ou telefone
   const clientesFiltrados = clientes.filter((c) => {
@@ -37,7 +62,7 @@ export function ClientesPage() {
         <Button
           variant="primary"
           size="sm"
-          onClick={() => setModalAberto(true)}
+          onClick={abrirNovo}
           icon={Plus}
         >
           Nova
@@ -65,21 +90,27 @@ export function ClientesPage() {
               : 'Cadastre suas clientes para acompanhar ciclos e histórico.'
           }
           actionLabel={busca ? 'Limpar Busca' : 'Cadastrar Primeira Cliente'}
-          onAction={busca ? () => setBusca('') : () => setModalAberto(true)}
+          onAction={busca ? () => setBusca('') : abrirNovo}
         />
       ) : (
         <div className="flex flex-col gap-2.5">
           {clientesFiltrados.map((cliente) => (
-            <ClienteCard key={cliente.id} cliente={cliente} />
+            <ClienteCard
+              key={cliente.id}
+              cliente={cliente}
+              onEdit={abrirEdicao}
+              onDelete={handleExcluir}
+            />
           ))}
         </div>
       )}
 
-      {/* Modal de Cadastro de Cliente */}
+      {/* Modal de Cadastro / Edição de Cliente */}
       <NovoClienteModal
         isOpen={modalAberto}
-        onClose={() => setModalAberto(false)}
-        onSalvar={adicionarCliente}
+        onClose={fecharModal}
+        onSalvar={handleSalvar}
+        cliente={clienteEmEdicao}
       />
     </div>
   );

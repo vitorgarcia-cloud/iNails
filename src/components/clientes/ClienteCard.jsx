@@ -1,12 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../ui/Card';
-import Badge from '../ui/Badge';
 import { formatTelefone } from '../../utils/formatters';
 import { normalizarTelefoneWhatsApp } from '../../utils/whatsapp';
-import { User, Phone, ChevronRight, MessageCircle } from 'lucide-react';
+import { Phone, MessageCircle, Edit2, Trash2 } from 'lucide-react';
 
-export function ClienteCard({ cliente }) {
+export function ClienteCard({ cliente, onEdit, onDelete }) {
   const navigate = useNavigate();
 
   const handleWhatsApp = (e) => {
@@ -41,9 +40,10 @@ export function ClienteCard({ cliente }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1 flex-shrink-0">
         {cliente.telefone && (
           <button
+            type="button"
             onClick={handleWhatsApp}
             className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors"
             title="Conversar no WhatsApp"
@@ -51,7 +51,34 @@ export function ClienteCard({ cliente }) {
             <MessageCircle className="w-4 h-4" />
           </button>
         )}
-        <ChevronRight className="w-4 h-4 text-slate-300" />
+
+        {onEdit && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onEdit(cliente);
+            }}
+            className="p-1.5 text-slate-400 hover:text-brand-600 rounded-lg hover:bg-brand-50 transition-colors"
+            title="Editar cliente"
+          >
+            <Edit2 className="w-4 h-4" />
+          </button>
+        )}
+
+        {onDelete && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(cliente);
+            }}
+            className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition-colors"
+            title="Excluir cliente"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </Card>
   );

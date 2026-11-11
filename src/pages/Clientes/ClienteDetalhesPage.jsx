@@ -76,7 +76,7 @@ export function ClienteDetalhesPage() {
       </div>
 
       {/* Cartão de Perfil Principal */}
-      <Card padding="p-4.5" className="flex flex-col gap-3">
+      <Card padding="p-4" className="flex flex-col gap-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-lg">
