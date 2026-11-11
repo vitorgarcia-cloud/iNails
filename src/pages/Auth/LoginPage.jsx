@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import Input from '../../components/ui/Input';
@@ -7,27 +7,12 @@ import Button from '../../components/ui/Button';
 import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 
 // ============================================================================
-// CONTROLE DE VISIBILIDADE DO BOTÃO DEMO
-// Mude para `true` para exibir sempre, ou deixe `false` para o público.
-// Dica rápida de dev:
-// 1. Acesse pela URL: /login?demo=true
-// 2. Ou clique 3 vezes seguidas na logo do iNails para ativar/desativar!
+// CONTROLE DO BOTÃO DEMO:
+// Altere para true para exibir o botão Demo, ou false para manter oculto.
 // ============================================================================
-const FORCAR_EXIBIR_DEMO = false;
+const EXIBIR_BOTAO_DEMO = false;
 
 export function LoginPage() {
-  const [searchParams] = useSearchParams();
-  const demoViaUrl = searchParams.get('demo') === 'true' || searchParams.get('demo') === '1';
-
-  const [exibirDemo, setExibirDemo] = useState(() => {
-    return (
-      FORCAR_EXIBIR_DEMO ||
-      demoViaUrl ||
-      (typeof window !== 'undefined' && localStorage.getItem('inails_show_demo_btn') === 'true')
-    );
-  });
-  const [cliquesLogo, setCliquesLogo] = useState(0);
-
   const [isSignUp, setIsSignUp] = useState(false);
   const [telefone, setTelefone] = useState('');
   const [password, setPassword] = useState('');
@@ -111,30 +96,6 @@ export function LoginPage() {
     }
   };
 
-  const handleLogoClick = () => {
-    setCliquesLogo((prev) => {
-      const proximo = prev + 1;
-      if (proximo >= 3) {
-        setExibirDemo((visivel) => {
-          const novoEstado = !visivel;
-          try {
-            localStorage.setItem('inails_show_demo_btn', novoEstado ? 'true' : 'false');
-          } catch {
-            // ignora se localStorage não disponível
-          }
-          if (novoEstado) {
-            toast.info('Modo Dev: Botão Demo ativado!');
-          } else {
-            toast.info('Modo Dev: Botão Demo ocultado!');
-          }
-          return novoEstado;
-        });
-        return 0;
-      }
-      return proximo;
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-brand-50/70 via-white to-slate-50 flex flex-col justify-center px-4 py-8">
       <div className="w-full max-w-sm mx-auto">
@@ -143,9 +104,7 @@ export function LoginPage() {
           <img
             src="/logo.png"
             alt="iNails Logo"
-            onClick={handleLogoClick}
-            title="iNails"
-            className="inline-block w-20 h-20 rounded-3xl shadow-xl shadow-brand-500/20 mb-3 animate-in zoom-in duration-300 object-cover select-none cursor-pointer active:scale-95 transition-transform"
+            className="inline-block w-20 h-20 rounded-3xl shadow-xl shadow-brand-500/20 mb-3 animate-in zoom-in duration-300 object-cover"
           />
           <h1 className="text-2xl font-black text-slate-900 tracking-tight">iNails</h1>
           <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
@@ -232,9 +191,9 @@ export function LoginPage() {
             </div>
           </form>
 
-          {/* Atalho de Demonstração (Oculto para o público por padrão) */}
-          {exibirDemo && (
-            <div className="mt-5 pt-5 border-t border-slate-100 text-center animate-in fade-in duration-200">
+          {/* Atalho de Demonstração (Controlado por EXIBIR_BOTAO_DEMO no topo deste arquivo) */}
+          {EXIBIR_BOTAO_DEMO && (
+            <div className="mt-5 pt-5 border-t border-slate-100 text-center">
               <Button
                 variant="outline"
                 size="sm"
