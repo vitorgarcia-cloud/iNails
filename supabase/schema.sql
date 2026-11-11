@@ -68,8 +68,14 @@ CREATE TABLE IF NOT EXISTS public.servicos_base (
     nome TEXT NOT NULL,
     intervalo_dias_manutencao INTEGER NOT NULL DEFAULT 21,
     valor_padrao NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+    valor_manutencao NUMERIC(10,2) DEFAULT NULL,
+    is_manutencao BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
+
+-- Garantir colunas de valor de manutenção e indicador caso a tabela já exista
+ALTER TABLE public.servicos_base ADD COLUMN IF NOT EXISTS valor_manutencao NUMERIC(10,2) DEFAULT NULL;
+ALTER TABLE public.servicos_base ADD COLUMN IF NOT EXISTS is_manutencao BOOLEAN DEFAULT false;
 
 -- ==============================================================================
 -- 5. TABELA: agendamentos (Agenda, recorrência e status de ciclos)

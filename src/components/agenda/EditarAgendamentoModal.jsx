@@ -98,7 +98,7 @@ export function EditarAgendamentoModal({
         >
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.nome} {c.telefone ? `(${c.telefone})` : ''}
+              {c.nome}
             </option>
           ))}
         </Select>

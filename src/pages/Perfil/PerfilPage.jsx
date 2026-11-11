@@ -74,7 +74,9 @@ export function PerfilPage() {
   const [servicoForm, setServicoForm] = useState({
     nome: '',
     valor_padrao: '',
+    valor_manutencao: '',
     intervalo_dias_manutencao: 21,
+    is_manutencao: false,
   });
 
   // Inicializa com dados do profile
@@ -164,7 +166,9 @@ export function PerfilPage() {
     setServicoForm({
       nome: '',
       valor_padrao: '',
+      valor_manutencao: '',
       intervalo_dias_manutencao: 21,
+      is_manutencao: false,
     });
     setModalServicoAberto(true);
   };
@@ -173,8 +177,10 @@ export function PerfilPage() {
     setServicoEmEdicao(servico);
     setServicoForm({
       nome: servico.nome,
-      valor_padrao: servico.valor_padrao,
+      valor_padrao: servico.valor_padrao ?? '',
+      valor_manutencao: servico.valor_manutencao ?? '',
       intervalo_dias_manutencao: servico.intervalo_dias_manutencao || 21,
+      is_manutencao: Boolean(servico.is_manutencao),
     });
     setModalServicoAberto(true);
   };
@@ -186,18 +192,22 @@ export function PerfilPage() {
       return;
     }
 
+    const dadosServico = {
+      nome: servicoForm.nome.trim(),
+      valor_padrao: parseFloat(servicoForm.valor_padrao),
+      valor_manutencao: servicoForm.is_manutencao
+        ? null
+        : servicoForm.valor_manutencao !== '' && servicoForm.valor_manutencao !== null && servicoForm.valor_manutencao !== undefined
+        ? parseFloat(servicoForm.valor_manutencao)
+        : null,
+      intervalo_dias_manutencao: parseInt(servicoForm.intervalo_dias_manutencao, 10),
+      is_manutencao: Boolean(servicoForm.is_manutencao),
+    };
+
     if (servicoEmEdicao) {
-      await atualizarServico(servicoEmEdicao.id, {
-        nome: servicoForm.nome,
-        valor_padrao: parseFloat(servicoForm.valor_padrao),
-        intervalo_dias_manutencao: parseInt(servicoForm.intervalo_dias_manutencao, 10),
-      });
+      await atualizarServico(servicoEmEdicao.id, dadosServico);
     } else {
-      await adicionarServico({
-        nome: servicoForm.nome,
-        valor_padrao: parseFloat(servicoForm.valor_padrao),
-        intervalo_dias_manutencao: parseInt(servicoForm.intervalo_dias_manutencao, 10),
-      });
+      await adicionarServico(dadosServico);
     }
     setModalServicoAberto(false);
   };
@@ -568,10 +578,26 @@ export function PerfilPage() {
                       </Badge>
                     </div>
 
-                    <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                    <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
                       <span className="font-extrabold text-brand-700">
-                        {formatMoeda(servico.valor_padrao)}
+                        {servico.is_manutencao ? (
+                          formatMoeda(servico.valor_padrao)
+                        ) : servico.valor_manutencao ? (
+                          <>
+                            {formatMoeda(servico.valor_padrao)}
+                            <span className="font-normal text-slate-500 ml-1.5">
+                              (Manutenção: <strong className="text-brand-700 font-bold">{formatMoeda(servico.valor_manutencao)}</strong>)
+                            </span>
+                          </>
+                        ) : (
+                          formatMoeda(servico.valor_padrao)
+                        )}
                       </span>
+                      {servico.is_manutencao && (
+                        <span className="text-[10px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                          Manutenção
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -706,16 +732,69 @@ export function PerfilPage() {
             required
           />
 
-          <Input
-            label="Valor Padrão (R$) *"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            value={servicoForm.valor_padrao}
-            onChange={(e) => setServicoForm({ ...servicoForm, valor_padrao: e.target.value })}
-            icon={DollarSign}
-            required
-          />
+          {/* Checkbox: Serviço é uma manutenção? */}
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={servicoForm.is_manutencao}
+                onChange={(e) =>
+                  setServicoForm({ ...servicoForm, is_manutencao: e.target.checked })
+                }
+                className="mt-0.5 w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300 cursor-pointer accent-brand-600"
+              />
+              <div className="flex-1">
+                <span className="text-xs font-bold text-slate-900 block">
+                  Este serviço é uma manutenção?
+                </span>
+                <span className="text-[11px] text-slate-500 block mt-0.5">
+                  {servicoForm.is_manutencao
+                    ? 'Sim: serviço com preço único (já é uma manutenção).'
+                    : 'Não: serviço de aplicação completa (possui valor do serviço e valor de manutenção).'}
+                </span>
+              </div>
+            </label>
+          </div>
+
+          {servicoForm.is_manutencao ? (
+            /* Preço único quando é manutenção */
+            <Input
+              label="Valor da Manutenção (R$) *"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              value={servicoForm.valor_padrao}
+              onChange={(e) => setServicoForm({ ...servicoForm, valor_padrao: e.target.value })}
+              icon={DollarSign}
+              required
+            />
+          ) : (
+            /* Dois preços quando é aplicação: valor da aplicação + valor da manutenção */
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Input
+                label="Valor do Procedimento (R$) *"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={servicoForm.valor_padrao}
+                onChange={(e) => setServicoForm({ ...servicoForm, valor_padrao: e.target.value })}
+                icon={DollarSign}
+                helperText="Preço cobrado na 1ª sessão (Aplicação)"
+                required
+              />
+
+              <Input
+                label="Valor da Manutenção (R$)"
+                type="number"
+                step="0.01"
+                placeholder="Ex: 95.00"
+                value={servicoForm.valor_manutencao}
+                onChange={(e) => setServicoForm({ ...servicoForm, valor_manutencao: e.target.value })}
+                icon={DollarSign}
+                helperText="Cobrado nas manutenções automáticas"
+              />
+            </div>
+          )}
 
           <Input
             label="Intervalo de Retorno / Manutenção (Dias) *"

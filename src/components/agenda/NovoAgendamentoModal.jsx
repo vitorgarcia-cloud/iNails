@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAuth } from '../../hooks/useAuth';
 import { calcularProximasManutencoes } from '../../utils/recurrence';
+import { formatMoeda } from '../../utils/formatters';
 
 export function NovoAgendamentoModal({
   isOpen,
@@ -59,6 +60,12 @@ export function NovoAgendamentoModal({
 
   const servicoSelecionado = servicos.find((s) => s.id === servicoId);
   const intervaloDias = servicoSelecionado?.intervalo_dias_manutencao || 21;
+  const valorManutencao =
+    servicoSelecionado?.valor_manutencao !== undefined &&
+    servicoSelecionado?.valor_manutencao !== null &&
+    servicoSelecionado?.valor_manutencao !== ''
+      ? parseFloat(servicoSelecionado.valor_manutencao)
+      : parseFloat(valor) || 0;
 
   // Pré-visualização das 2 próximas manutenções
   const projecoesPrevia = useMemo(() => {
@@ -98,12 +105,14 @@ export function NovoAgendamentoModal({
           intervaloDias,
           qtdCiclos: 2,
           diasTrabalho,
+          valorManutencao,
         },
         {
           gerarProjecoes,
           intervaloDias,
           qtdCiclos: 2,
           diasTrabalho,
+          valorManutencao,
         }
       );
       onClose();
@@ -154,7 +163,7 @@ export function NovoAgendamentoModal({
           </div>
         )}
 
-        {/* Seleção de Cliente */}
+        {/* Seleção de Cliente (Apenas Nome) */}
         <Select
           label="Cliente *"
           value={clienteId}
@@ -164,7 +173,7 @@ export function NovoAgendamentoModal({
         >
           {clientes.map((c) => (
             <option key={c.id} value={c.id}>
-              {c.nome} {c.telefone ? `(${c.telefone})` : ''}
+              {c.nome}
             </option>
           ))}
         </Select>
@@ -179,7 +188,8 @@ export function NovoAgendamentoModal({
         >
           {servicos.map((s) => (
             <option key={s.id} value={s.id}>
-              {s.nome} - R$ {Number(s.valor_padrao).toFixed(2)} (Ciclo {s.intervalo_dias_manutencao}d)
+              {s.nome} - R$ {Number(s.valor_padrao).toFixed(2)}
+              {s.valor_manutencao ? ` (Manutenção: R$ ${Number(s.valor_manutencao).toFixed(2)})` : ''} (Ciclo {s.intervalo_dias_manutencao}d)
             </option>
           ))}
         </Select>
@@ -263,7 +273,7 @@ export function NovoAgendamentoModal({
                         {p.ciclo}ª
                       </span>
                       <span className="font-semibold text-slate-800 text-xs">
-                        {format(p.data, "EEEE, dd 'de' MMMM", { locale: ptBR })} às {horarioAtendimento}
+                        {format(p.data, "EEEE, dd 'de' MMMM", { locale: ptBR })} às {horarioAtendimento} • <strong className="text-brand-700 font-bold">{formatMoeda(valorManutencao)}</strong>
                       </span>
                     </div>
 

@@ -76,6 +76,8 @@ export const INITIAL_MOCK_DATA = {
       nome: 'Alongamento Fibra de Vidro',
       intervalo_dias_manutencao: 21,
       valor_padrao: 150.00,
+      valor_manutencao: 95.00,
+      is_manutencao: false,
     },
     {
       id: 's2',
@@ -83,6 +85,8 @@ export const INITIAL_MOCK_DATA = {
       nome: 'Manutenção Fibra de Vidro',
       intervalo_dias_manutencao: 21,
       valor_padrao: 95.00,
+      valor_manutencao: 95.00,
+      is_manutencao: true,
     },
     {
       id: 's3',
@@ -90,6 +94,8 @@ export const INITIAL_MOCK_DATA = {
       nome: 'Esmaltação em Gel',
       intervalo_dias_manutencao: 15,
       valor_padrao: 65.00,
+      valor_manutencao: 55.00,
+      is_manutencao: false,
     },
     {
       id: 's4',
@@ -97,6 +103,8 @@ export const INITIAL_MOCK_DATA = {
       nome: 'Banho de Gel',
       intervalo_dias_manutencao: 21,
       valor_padrao: 80.00,
+      valor_manutencao: 65.00,
+      is_manutencao: false,
     },
     {
       id: 's5',
@@ -104,6 +112,8 @@ export const INITIAL_MOCK_DATA = {
       nome: 'Manicure Tradicional',
       intervalo_dias_manutencao: 7,
       valor_padrao: 35.00,
+      valor_manutencao: 35.00,
+      is_manutencao: true,
     }
   ],
   agendamentos: [

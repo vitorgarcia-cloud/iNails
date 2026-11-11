@@ -10,7 +10,7 @@ import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 // CONTROLE DO BOTÃO DEMO:
 // Altere para true para exibir o botão Demo, ou false para manter oculto.
 // ============================================================================
-const EXIBIR_BOTAO_DEMO = false;
+const EXIBIR_BOTAO_DEMO = true;
 
 export function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -118,18 +118,16 @@ export function LoginPage() {
             <button
               type="button"
               onClick={() => setIsSignUp(false)}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 ${
-                !isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 ${!isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               Entrar
             </button>
             <button
               type="button"
               onClick={() => setIsSignUp(true)}
-              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 ${
-                isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
-              }`}
+              className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all duration-150 ${isSignUp ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-900'
+                }`}
             >
               Criar Conta
             </button>

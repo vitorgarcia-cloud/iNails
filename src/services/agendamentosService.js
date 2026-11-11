@@ -111,6 +111,13 @@ export const agendamentosService = {
     const intervaloDias = Number(opcoes.intervaloDias ?? dados.intervaloDias ?? 21);
     const qtdCiclos = Number(opcoes.qtdCiclos ?? dados.qtdCiclos ?? 2);
     const diasTrabalho = opcoes.diasTrabalho ?? dados.diasTrabalho ?? [1, 2, 3, 4, 5, 6];
+    const valorManutencaoFinal = Number(
+      opcoes.valorManutencao !== undefined && opcoes.valorManutencao !== null
+        ? opcoes.valorManutencao
+        : dados.valorManutencao !== undefined && dados.valorManutencao !== null
+        ? dados.valorManutencao
+        : valor || 0
+    );
 
     const novoAgendamento = {
       cliente_id,
@@ -144,7 +151,7 @@ export const agendamentosService = {
             cliente_id,
             servico_id,
             data_hora: proj.dataISO,
-            valor: Number(valor || 0),
+            valor: valorManutencaoFinal,
             status: 'pendente',
             is_recorrente: true,
             observacao: `[Manutenção ${proj.ciclo}/2] Próxima manutenção sugerida`,
@@ -179,7 +186,7 @@ export const agendamentosService = {
         cliente_id,
         servico_id,
         data_hora: proj.dataISO,
-        valor: Number(valor || 0),
+        valor: valorManutencaoFinal,
         status: 'pendente',
         is_recorrente: true,
         observacao: `[Manutenção ${proj.ciclo}/2] Próxima manutenção sugerida`,

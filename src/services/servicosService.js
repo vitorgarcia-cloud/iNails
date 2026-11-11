@@ -22,11 +22,11 @@ export const servicosService = {
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.id) {
         const servicosPadrao = [
-          { user_id: user.id, nome: 'Alongamento Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 150.00 },
-          { user_id: user.id, nome: 'Manutenção Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 95.00 },
-          { user_id: user.id, nome: 'Esmaltação em Gel', intervalo_dias_manutencao: 15, valor_padrao: 60.00 },
-          { user_id: user.id, nome: 'Banho de Gel', intervalo_dias_manutencao: 21, valor_padrao: 80.00 },
-          { user_id: user.id, nome: 'Manicure Tradicional', intervalo_dias_manutencao: 7, valor_padrao: 35.00 }
+          { user_id: user.id, nome: 'Alongamento Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 150.00, valor_manutencao: 95.00, is_manutencao: false },
+          { user_id: user.id, nome: 'Manutenção Fibra de Vidro', intervalo_dias_manutencao: 21, valor_padrao: 95.00, valor_manutencao: 95.00, is_manutencao: true },
+          { user_id: user.id, nome: 'Esmaltação em Gel', intervalo_dias_manutencao: 15, valor_padrao: 60.00, valor_manutencao: 55.00, is_manutencao: false },
+          { user_id: user.id, nome: 'Banho de Gel', intervalo_dias_manutencao: 21, valor_padrao: 80.00, valor_manutencao: 65.00, is_manutencao: false },
+          { user_id: user.id, nome: 'Manicure Tradicional', intervalo_dias_manutencao: 7, valor_padrao: 35.00, valor_manutencao: 35.00, is_manutencao: true }
         ];
         const resInsert = await supabase.from('servicos_base').insert(servicosPadrao).select();
         if (resInsert.data && resInsert.data.length > 0) {
@@ -41,15 +41,30 @@ export const servicosService = {
   /**
    * Cria um novo serviço base
    */
-  async criar({ nome, intervalo_dias_manutencao = 21, valor_padrao = 0 }) {
+  async criar({
+    nome,
+    intervalo_dias_manutencao = 21,
+    valor_padrao = 0,
+    valor_manutencao = null,
+    is_manutencao = false,
+  }) {
+    const payload = {
+      nome,
+      intervalo_dias_manutencao: Number(intervalo_dias_manutencao),
+      valor_padrao: Number(valor_padrao),
+      valor_manutencao:
+        valor_manutencao !== null && valor_manutencao !== undefined && valor_manutencao !== ''
+          ? Number(valor_manutencao)
+          : null,
+      is_manutencao: Boolean(is_manutencao),
+    };
+
     if (isDemoSession() || !isSupabaseConfigured) {
       const db = getMockDB();
       const novo = {
         id: 's_' + Date.now(),
-        user_id: db.profile.user_id,
-        nome,
-        intervalo_dias_manutencao: Number(intervalo_dias_manutencao),
-        valor_padrao: Number(valor_padrao),
+        user_id: db.profile?.user_id || 'demo-user-id',
+        ...payload,
         created_at: new Date().toISOString()
       };
       db.servicos_base.push(novo);
@@ -59,18 +74,30 @@ export const servicosService = {
 
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { data, error } = await supabase
+    let res = await supabase
       .from('servicos_base')
       .insert({
         user_id: user?.id,
-        nome,
-        intervalo_dias_manutencao: Number(intervalo_dias_manutencao),
-        valor_padrao: Number(valor_padrao)
+        ...payload,
       })
       .select()
       .single();
 
-    return { data, error };
+    // Fallback se colunas ainda não existirem no Supabase
+    if (res.error && (res.error.code === 'PGRST204' || res.error.message?.includes('column'))) {
+      res = await supabase
+        .from('servicos_base')
+        .insert({
+          user_id: user?.id,
+          nome,
+          intervalo_dias_manutencao: Number(intervalo_dias_manutencao),
+          valor_padrao: Number(valor_padrao),
+        })
+        .select()
+        .single();
+    }
+
+    return res;
   },
 
   /**
@@ -88,14 +115,24 @@ export const servicosService = {
       return { data: null, error: 'Serviço não encontrado' };
     }
 
-    const { data, error } = await supabase
+    let res = await supabase
       .from('servicos_base')
       .update(dados)
       .eq('id', id)
       .select()
       .single();
 
-    return { data, error };
+    if (res.error && (res.error.code === 'PGRST204' || res.error.message?.includes('column'))) {
+      const { valor_manutencao, is_manutencao, ...dadosBase } = dados;
+      res = await supabase
+        .from('servicos_base')
+        .update(dadosBase)
+        .eq('id', id)
+        .select()
+        .single();
+    }
+
+    return res;
   },
 
   /**
