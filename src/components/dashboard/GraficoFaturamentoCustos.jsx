@@ -364,8 +364,8 @@ export function GraficoFaturamentoCustos({
 
         <div
           className={`rounded-xl p-2 border ${lucroLiquidoPeriodo >= 0
-              ? 'bg-slate-50 border-slate-200 text-slate-800'
-              : 'bg-rose-100/60 border-rose-200 text-rose-800'
+            ? 'bg-slate-50 border-slate-200 text-slate-800'
+            : 'bg-rose-100/60 border-rose-200 text-rose-800'
             }`}
         >
           <span className="text-[10px] text-slate-500 font-bold block uppercase tracking-wider">
@@ -415,11 +415,10 @@ export function GraficoFaturamentoCustos({
                 {faixasDivisao.map((faixa, idx) => (
                   <div
                     key={faixa.index}
-                    className={`flex-1 w-full border-b ${
-                      idx === faixasDivisao.length - 1
+                    className={`flex-1 w-full border-b ${idx === faixasDivisao.length - 1
                         ? 'border-b-2 border-slate-500'
                         : 'border-b border-slate-300'
-                    } ${faixa.isPar ? 'bg-slate-50/80' : 'bg-white'}`}
+                      } ${faixa.isPar ? 'bg-slate-50/80' : 'bg-white'}`}
                   />
                 ))}
               </div>

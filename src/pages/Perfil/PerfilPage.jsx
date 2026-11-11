@@ -272,7 +272,7 @@ export function PerfilPage() {
                   <label className="cursor-pointer">
                     <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-semibold transition-colors">
                       <Upload className="w-3.5 h-3.5" />
-                      Alterar Foto / Logo
+                      Alterar
                     </span>
                     <input
                       type="file"
@@ -305,7 +305,7 @@ export function PerfilPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="Nome do Salão ou Estúdio"
+                label="Nome do Salão"
                 placeholder="Ex: Studio Jéssica Silva Nails"
                 value={nomeEstudio}
                 onChange={(e) => setNomeEstudio(e.target.value)}
@@ -313,7 +313,7 @@ export function PerfilPage() {
               />
 
               <Input
-                label="Nome da Profissional / Nail Designer"
+                label="Nail Designer"
                 placeholder="Ex: Jéssica Silva"
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
@@ -323,7 +323,7 @@ export function PerfilPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
-                label="WhatsApp / Telefone de Contato"
+                label="Número de Contato"
                 placeholder="(11) 98765-4321"
                 value={telefone}
                 onChange={(e) => setTelefone(e.target.value)}
@@ -340,7 +340,7 @@ export function PerfilPage() {
             </div>
 
             <Input
-              label="Endereço / Local de Atendimento"
+              label="Local de Atendimento"
               placeholder="Rua das Flores, 120 - Sala 4 - Centro"
               value={endereco}
               onChange={(e) => setEndereco(e.target.value)}
@@ -352,7 +352,7 @@ export function PerfilPage() {
           <Card className="flex flex-col gap-3" padding="p-4">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
               <QrCode className="w-4 h-4 text-brand-500" />
-              Chave Pix para Recebimentos
+              Chave Pix
             </h3>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -510,7 +510,7 @@ export function PerfilPage() {
 
             <div className="pt-2 border-t border-slate-100">
               <Input
-                label="Ciclo Padrão de Manutenção Recomendado (dias)"
+                label="Ciclo de Manutenção (dias)"
                 type="number"
                 min="7"
                 max="60"
