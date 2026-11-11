@@ -31,7 +31,9 @@ import {
   Upload,
   Smartphone,
   Download,
-  CheckCircle2
+  CheckCircle2,
+  Share2,
+  Copy
 } from 'lucide-react';
 
 const DIAS_SEMANA = [
@@ -157,6 +159,40 @@ export function PerfilPage() {
       toast.error('Erro ao atualizar configurações.');
     } finally {
       setSalvando(false);
+    }
+  };
+
+  // Compartilhar chave Pix do estabelecimento
+  const handleCompartilharPix = async () => {
+    if (!chavePix || !chavePix.trim()) {
+      toast.warning('Informe sua chave Pix para poder compartilhar.');
+      return;
+    }
+
+    const nomeEstabelecimento = nomeEstudio || nome || 'Nosso Estúdio';
+    const tipoFormatado = tipoChavePix === 'celular' ? 'Celular / WhatsApp' : tipoChavePix.toUpperCase();
+    const texto = `*Chave Pix - ${nomeEstabelecimento}*\n\n🔑 *Chave:* ${chavePix}\n📌 *Tipo:* ${tipoFormatado}${nome ? `\n👤 *Titular:* ${nome}` : ''}\n\nEnvie o comprovante após a transferência! ✨`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Chave Pix - ${nomeEstabelecimento}`,
+          text: texto,
+        });
+        toast.success('Chave Pix compartilhada!');
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+        }
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(chavePix);
+      toast.success('Chave Pix copiada para a área de transferência!');
+    } catch {
+      toast.info(`Chave Pix: ${chavePix}`);
     }
   };
 
@@ -360,10 +396,24 @@ export function PerfilPage() {
 
           {/* Chave Pix para Cobrança / Sinais */}
           <Card className="flex flex-col gap-3" padding="p-4">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
-              <QrCode className="w-4 h-4 text-brand-500" />
-              Chave Pix
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-1.5">
+                <QrCode className="w-4 h-4 text-brand-500" />
+                Chave Pix
+              </h3>
+
+              {chavePix && (
+                <button
+                  type="button"
+                  onClick={handleCompartilharPix}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors border border-brand-200"
+                  title="Compartilhar chave Pix do estabelecimento"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  <span>Compartilhar</span>
+                </button>
+              )}
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input

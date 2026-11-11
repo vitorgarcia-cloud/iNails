@@ -22,9 +22,15 @@ export function PWAInstallProvider({ children }) {
       /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
     setIsIOS(iosDevice);
 
-    // 3. Captura evento nativo do PWA no Chrome / Edge / Android
+    // 3. Captura evento nativo do PWA no Chrome / Edge / Android / Desktop
+    if (window.__inails_deferred_prompt) {
+      setDeferredPrompt(window.__inails_deferred_prompt);
+      setCanInstall(true);
+    }
+
     const handleBeforeInstall = (e) => {
       e.preventDefault();
+      window.__inails_deferred_prompt = e;
       setDeferredPrompt(e);
       setCanInstall(true);
     };
@@ -33,6 +39,7 @@ export function PWAInstallProvider({ children }) {
       setIsInstalled(true);
       setCanInstall(false);
       setDeferredPrompt(null);
+      window.__inails_deferred_prompt = null;
       setShowPop(false);
     };
 
@@ -64,21 +71,23 @@ export function PWAInstallProvider({ children }) {
   };
 
   const installApp = async () => {
-    if (deferredPrompt) {
+    const promptEvent = deferredPrompt || window.__inails_deferred_prompt;
+    if (promptEvent) {
       try {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        await promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
         if (outcome === 'accepted') {
           setIsInstalled(true);
           setCanInstall(false);
         }
         setDeferredPrompt(null);
+        window.__inails_deferred_prompt = null;
         dismissPop();
       } catch (err) {
         console.error('Erro ao acionar prompt de instalação:', err);
       }
     } else {
-      // Caso iOS ou navegador desktop sem evento nativo disponível, abre instruções visuais
+      // Caso iOS ou navegador desktop sem evento nativo disponível no momento, abre instruções visuais
       setModalInstrucoesAberto(true);
       dismissPop();
     }
