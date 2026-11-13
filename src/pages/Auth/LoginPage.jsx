@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
+import RecuperarSenhaModal from '../../components/auth/RecuperarSenhaModal';
 import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 
 // ============================================================================
@@ -19,6 +20,7 @@ export function LoginPage() {
   const [nome, setNome] = useState('');
   const [nomeEstudio, setNomeEstudio] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showRecuperarModal, setShowRecuperarModal] = useState(false);
 
   const { signIn, signUp, loginDemo } = useAuth();
   const toast = useToast();
@@ -175,6 +177,18 @@ export function LoginPage() {
               required
             />
 
+            {!isSignUp && (
+              <div className="flex justify-end -mt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRecuperarModal(true)}
+                  className="text-xs font-semibold text-brand-600 hover:text-brand-700 transition-colors py-1"
+                >
+                  Esqueceu sua senha?
+                </button>
+              </div>
+            )}
+
             <div className="pt-2">
               <Button
                 type="submit"
@@ -210,6 +224,12 @@ export function LoginPage() {
           iNails &copy; {new Date().getFullYear()} • Gestão para Nail Designers
         </p>
       </div>
+
+      <RecuperarSenhaModal
+        isOpen={showRecuperarModal}
+        onClose={() => setShowRecuperarModal(false)}
+        initialTelefone={telefone}
+      />
     </div>
   );
 }

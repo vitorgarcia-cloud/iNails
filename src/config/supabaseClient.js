@@ -22,8 +22,17 @@ if (!isSupabaseConfigured) {
   );
 }
 
-// Cria a instância do cliente Supabase (usando fallback seguro caso não configurado)
+// Cria a instância do cliente Supabase com persistência garantida no LocalStorage
 export const supabase = createClient(
   isSupabaseConfigured ? supabaseUrl : 'https://demo-inails.supabase.co',
-  isSupabaseConfigured ? supabaseAnonKey : 'demo-anon-key'
+  isSupabaseConfigured ? supabaseAnonKey : 'demo-anon-key',
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      storageKey: 'inails_supabase_session',
+    }
+  }
 );

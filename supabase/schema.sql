@@ -224,3 +224,138 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ==============================================================================
+-- 10. RECUPERAÇÃO DE SENHA VIA WHATSAPP / SMS (CÓDIGO OTP DE 6 DÍGITOS)
+-- ==============================================================================
+
+-- Colunas para controle de código temporário de recuperação
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS codigo_recuperacao TEXT DEFAULT NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS codigo_recuperacao_expira TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+
+-- 10.1 Função RPC para gerar o código de recuperação para o telefone informado
+CREATE OR REPLACE FUNCTION public.solicitar_codigo_recuperacao(p_telefone TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+    v_clean_tel TEXT;
+    v_profile RECORD;
+    v_codigo TEXT;
+    v_expira TIMESTAMP WITH TIME ZONE;
+BEGIN
+    -- Limpa caracteres não numéricos
+    v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
+    
+    IF length(v_clean_tel) < 10 THEN
+        RETURN jsonb_build_object(
+            'sucesso', false,
+            'mensagem', 'Informe um telefone celular válido com DDD.'
+        );
+    END IF;
+
+    -- Localiza o perfil da profissional correspondente
+    SELECT * INTO v_profile
+    FROM public.profiles
+    WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'sucesso', false,
+            'mensagem', 'Nenhum estúdio encontrado com este número de telefone.'
+        );
+    END IF;
+
+    -- Gera código numérico de 6 dígitos
+    v_codigo := lpad((floor(random() * 900000) + 100000)::text, 6, '0');
+    v_expira := now() + interval '15 minutes';
+
+    -- Atualiza no perfil
+    UPDATE public.profiles
+    SET 
+        codigo_recuperacao = v_codigo,
+        codigo_recuperacao_expira = v_expira
+    WHERE id = v_profile.id;
+
+    RETURN jsonb_build_object(
+        'sucesso', true,
+        'codigo', v_codigo,
+        'nome', COALESCE(v_profile.nome, 'Nail Designer'),
+        'telefone', v_clean_tel
+    );
+END;
+$$;
+
+-- 10.2 Função RPC para validar código e atualizar a senha em auth.users
+CREATE OR REPLACE FUNCTION public.redefinir_senha_por_codigo(
+    p_telefone TEXT,
+    p_codigo TEXT,
+    p_nova_senha TEXT
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, pg_temp
+AS $$
+DECLARE
+    v_clean_tel TEXT;
+    v_clean_code TEXT;
+    v_profile RECORD;
+BEGIN
+    v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
+    v_clean_code := trim(COALESCE(p_codigo, ''));
+
+    IF length(v_clean_tel) < 10 THEN
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Telefone inválido.');
+    END IF;
+
+    IF length(v_clean_code) <> 6 THEN
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'O código deve ter 6 dígitos.');
+    END IF;
+
+    IF length(COALESCE(p_nova_senha, '')) < 6 THEN
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'A nova senha deve ter no mínimo 6 caracteres.');
+    END IF;
+
+    -- Localiza o perfil com o código válido
+    SELECT * INTO v_profile
+    FROM public.profiles
+    WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
+      AND codigo_recuperacao = v_clean_code
+      AND codigo_recuperacao_expira > now()
+    LIMIT 1;
+
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'sucesso', false,
+            'mensagem', 'Código de verificação incorreto ou expirado. Solicite um novo código.'
+        );
+    END IF;
+
+    -- Atualiza a senha criptografada diretamente em auth.users
+    UPDATE auth.users
+    SET 
+        encrypted_password = crypt(p_nova_senha, gen_salt('bf')),
+        updated_at = now()
+    WHERE id = v_profile.user_id;
+
+    -- Invalida o código após o uso
+    UPDATE public.profiles
+    SET 
+        codigo_recuperacao = NULL,
+        codigo_recuperacao_expira = NULL
+    WHERE id = v_profile.id;
+
+    RETURN jsonb_build_object(
+        'sucesso', true,
+        'mensagem', 'Senha redefinida com sucesso!'
+    );
+END;
+$$;
+
+-- Permissões de execução pública (para clientes anon e autenticados)
+GRANT EXECUTE ON FUNCTION public.solicitar_codigo_recuperacao(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.redefinir_senha_por_codigo(TEXT, TEXT, TEXT) TO anon, authenticated;

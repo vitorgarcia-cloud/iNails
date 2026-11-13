@@ -1,13 +1,37 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { authService, isDemoSession } from '../services/authService';
+import { authService, isDemoSession, AUTH_USER_KEY, AUTH_PROFILE_KEY } from '../services/authService';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Inicializa o usuário a partir do LocalStorage para conexão instantânea automática
+  const [user, setUser] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const savedUser = localStorage.getItem(AUTH_USER_KEY);
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [profile, setProfile] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const savedProfile = localStorage.getItem(AUTH_PROFILE_KEY);
+      return savedProfile ? JSON.parse(savedProfile) : null;
+    } catch {
+      return null;
+    }
+  });
+
   const [isDemo, setIsDemo] = useState(isDemoSession());
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    // Se o usuário já está salvo no LocalStorage, abre direto sem tela de loading
+    const hasLocalUser = localStorage.getItem(AUTH_USER_KEY) || localStorage.getItem('inails_demo_session');
+    return !hasLocalUser;
+  });
 
   // Inicializa sessão e listener de autenticação
   useEffect(() => {
@@ -19,12 +43,19 @@ export function AuthProvider({ children }) {
         if (mounted && data?.session?.user) {
           const currentUser = data.session.user;
           setUser(currentUser);
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(currentUser));
           setIsDemo(isDemoSession());
           await loadUserProfile(currentUser.id);
         } else if (mounted) {
-          setUser(null);
-          setProfile(null);
-          setIsDemo(isDemoSession());
+          // Se não há sessão no Supabase e nem sessão demo, limpa persistência
+          if (!isDemoSession()) {
+            const hasLocal = localStorage.getItem(AUTH_USER_KEY);
+            if (!hasLocal) {
+              setUser(null);
+              setProfile(null);
+              setIsDemo(false);
+            }
+          }
         }
       } catch (err) {
         console.error('Erro ao inicializar sessão:', err);
@@ -35,16 +66,19 @@ export function AuthProvider({ children }) {
 
     initAuth();
 
-    const { data: { subscription } } = authService.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = authService.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       if (session?.user) {
         setUser(session.user);
+        localStorage.setItem(AUTH_USER_KEY, JSON.stringify(session.user));
         setIsDemo(isDemoSession());
         await loadUserProfile(session.user.id);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         setIsDemo(false);
+        localStorage.removeItem(AUTH_USER_KEY);
+        localStorage.removeItem(AUTH_PROFILE_KEY);
       }
       setLoading(false);
     });
@@ -148,6 +182,21 @@ export function AuthProvider({ children }) {
     return { data, error };
   }
 
+  async function solicitarCodigoRecuperacao(telefone) {
+    return await authService.solicitarCodigoRecuperacao(telefone);
+  }
+
+  async function redefinirSenhaComCodigo({ telefone, codigo, novaSenha, autoLogin = true }) {
+    const res = await authService.redefinirSenhaComCodigo({ telefone, codigo, novaSenha });
+    if (res.error) return res;
+
+    // Se solicitado autoLogin, efetua login imediato com as novas credenciais
+    if (autoLogin) {
+      await signIn({ telefone, password: novaSenha });
+    }
+    return res;
+  }
+
   const value = {
     user,
     profile,
@@ -159,6 +208,8 @@ export function AuthProvider({ children }) {
     loginDemo,
     signOut,
     updateProfile,
+    solicitarCodigoRecuperacao,
+    redefinirSenhaComCodigo,
     refreshProfile: () => user && loadUserProfile(user.id),
   };
 

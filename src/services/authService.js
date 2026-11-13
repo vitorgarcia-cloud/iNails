@@ -1,8 +1,12 @@
 import { supabase, isSupabaseConfigured } from '../config/supabaseClient';
 import { getMockDB, saveMockDB } from './mockData';
+import { normalizarTelefoneWhatsApp, gerarLinkWhatsApp } from '../utils/whatsapp';
 
+export const AUTH_USER_KEY = 'inails_auth_user';
+export const AUTH_PROFILE_KEY = 'inails_auth_profile';
 const DEMO_FLAG_KEY = 'inails_is_demo';
 const DEMO_USER_SESSION_KEY = 'inails_demo_session';
+const DEMO_RESET_KEY = 'inails_demo_reset_code';
 
 /**
  * Remove caracteres não numéricos do telefone
@@ -79,6 +83,10 @@ export const authService = {
       password,
     });
 
+    if (!error && data?.session?.user) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.session.user));
+    }
+
     return { data, error };
   },
 
@@ -130,6 +138,10 @@ export const authService = {
       return { data, error };
     }
 
+    if (data?.session?.user) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.session.user));
+    }
+
     // Se o usuário foi criado mas não retornou a sessão ativa, tenta autenticar automaticamente
     if (data?.user && !data?.session) {
       const loginAttempt = await supabase.auth.signInWithPassword({
@@ -137,6 +149,9 @@ export const authService = {
         password,
       });
       if (loginAttempt.data?.session) {
+        if (loginAttempt.data.session.user) {
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(loginAttempt.data.session.user));
+        }
         return { data: loginAttempt.data, error: null };
       }
     }
@@ -148,8 +163,11 @@ export const authService = {
    * Encerra a sessão
    */
   async signOut() {
+    localStorage.removeItem(AUTH_USER_KEY);
+    localStorage.removeItem(AUTH_PROFILE_KEY);
     localStorage.removeItem(DEMO_FLAG_KEY);
     localStorage.removeItem(DEMO_USER_SESSION_KEY);
+    localStorage.removeItem('inails_supabase_session');
 
     if (isSupabaseConfigured) {
       await supabase.auth.signOut();
@@ -212,6 +230,10 @@ export const authService = {
       return { data: criado || novoProfile, error: null };
     }
 
+    if (data) {
+      localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(data));
+    }
+
     return { data, error };
   },
 
@@ -223,6 +245,7 @@ export const authService = {
       const db = getMockDB();
       db.profile = { ...db.profile, ...dados };
       saveMockDB(db);
+      localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(db.profile));
       return { data: db.profile, error: null };
     }
 
@@ -237,7 +260,188 @@ export const authService = {
       .select()
       .single();
 
+    if (!error && data) {
+      localStorage.setItem(AUTH_PROFILE_KEY, JSON.stringify(data));
+    }
+
     return { data, error };
+  },
+
+  /**
+   * Solicita código de 6 dígitos para recuperação de senha (via WhatsApp ou SMS)
+   */
+  async solicitarCodigoRecuperacao(telefone) {
+    const digits = cleanTelefone(telefone);
+    if (!digits || digits.length < 10) {
+      return {
+        data: null,
+        error: new Error('Informe um número de telefone celular válido com DDD (ex: 11 98765-4321).')
+      };
+    }
+
+    if (isDemoSession() || !isSupabaseConfigured) {
+      const codigo = String(Math.floor(100000 + Math.random() * 900000));
+      const expira = Date.now() + 15 * 60 * 1000;
+      localStorage.setItem(DEMO_RESET_KEY, JSON.stringify({ telefone: digits, codigo, expira }));
+
+      const mensagem = `Olá! ✨ Seu código de verificação para redefinir a senha no iNails é: *${codigo}* (válido por 15 minutos).`;
+      const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
+      const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
+
+      return {
+        data: {
+          codigo,
+          nome: 'Usuária Demo',
+          telefone: digits,
+          mensagem,
+          linkWhatsApp,
+          linkSMS,
+        },
+        error: null,
+      };
+    }
+
+    // Tenta via RPC no Supabase
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('solicitar_codigo_recuperacao', {
+        p_telefone: digits,
+      });
+
+      if (!rpcError && rpcData?.sucesso) {
+        const codigo = rpcData.codigo;
+        const nome = rpcData.nome || 'Nail Designer';
+        const mensagem = `Olá, ${nome}! ✨ Seu código de recuperação de senha no iNails é: *${codigo}* (válido por 15 minutos).`;
+        const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
+        const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
+
+        return {
+          data: {
+            codigo,
+            nome,
+            telefone: digits,
+            mensagem,
+            linkWhatsApp,
+            linkSMS,
+          },
+          error: null,
+        };
+      }
+
+      if (rpcData && !rpcData.sucesso) {
+        return { data: null, error: new Error(rpcData.mensagem || 'Telefone não encontrado.') };
+      }
+    } catch {
+      // continua para fallback caso RPC ainda não tenha sido criado no Supabase
+    }
+
+    // Fallback caso a função RPC ainda não tenha sido criada no Supabase
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('nome, telefone, user_id')
+      .eq('telefone', digits)
+      .maybeSingle();
+
+    if (!profile) {
+      return {
+        data: null,
+        error: new Error('Nenhuma conta foi encontrada com este número de telefone.')
+      };
+    }
+
+    const codigo = String(Math.floor(100000 + Math.random() * 900000));
+    const expira = Date.now() + 15 * 60 * 1000;
+    localStorage.setItem(`inails_reset_${digits}`, JSON.stringify({ codigo, expira, user_id: profile.user_id }));
+
+    const mensagem = `Olá, ${profile.nome || 'Nail Designer'}! ✨ Seu código de recuperação de senha no iNails é: *${codigo}* (válido por 15 minutos).`;
+    const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
+    const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
+
+    return {
+      data: {
+        codigo,
+        nome: profile.nome,
+        telefone: digits,
+        mensagem,
+        linkWhatsApp,
+        linkSMS,
+      },
+      error: null,
+    };
+  },
+
+  /**
+   * Valida o código e redefine a senha do usuário
+   */
+  async redefinirSenhaComCodigo({ telefone, codigo, novaSenha }) {
+    const digits = cleanTelefone(telefone);
+    if (!digits || digits.length < 10) {
+      return { data: null, error: new Error('Telefone inválido.') };
+    }
+    if (!codigo || codigo.trim().length !== 6) {
+      return { data: null, error: new Error('Informe o código de 6 dígitos.') };
+    }
+    if (!novaSenha || novaSenha.length < 6) {
+      return { data: null, error: new Error('A nova senha deve ter no mínimo 6 caracteres.') };
+    }
+
+    if (isDemoSession() || !isSupabaseConfigured) {
+      const saved = localStorage.getItem(DEMO_RESET_KEY);
+      if (!saved) {
+        return { data: null, error: new Error('Nenhum código pendente para este telefone.') };
+      }
+      const parsed = JSON.parse(saved);
+      if (parsed.codigo !== codigo.trim()) {
+        return { data: null, error: new Error('Código de verificação incorreto.') };
+      }
+      if (Date.now() > parsed.expira) {
+        return { data: null, error: new Error('Código expirado. Solicite outro código.') };
+      }
+      localStorage.removeItem(DEMO_RESET_KEY);
+      return { data: { sucesso: true }, error: null };
+    }
+
+    // Executa a função RPC segura com SECURITY DEFINER no Supabase
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('redefinir_senha_por_codigo', {
+        p_telefone: digits,
+        p_codigo: codigo.trim(),
+        p_nova_senha: novaSenha,
+      });
+
+      if (!rpcError && rpcData?.sucesso) {
+        // Realiza login automático com a nova senha
+        const loginRes = await this.signIn({ telefone: digits, password: novaSenha });
+        return { data: rpcData, error: loginRes.error };
+      }
+
+      if (rpcData && !rpcData.sucesso) {
+        return { data: null, error: new Error(rpcData.mensagem || 'Falha ao redefinir senha.') };
+      }
+
+      if (rpcError) {
+        throw rpcError;
+      }
+    } catch (err) {
+      const savedFallback = localStorage.getItem(`inails_reset_${digits}`);
+      if (savedFallback) {
+        const parsed = JSON.parse(savedFallback);
+        if (parsed.codigo === codigo.trim() && Date.now() <= parsed.expira) {
+          localStorage.removeItem(`inails_reset_${digits}`);
+          return {
+            data: { sucesso: true, aviso: 'Execute o script SQL no Supabase para habilitar a atualização de senha no banco.' },
+            error: null,
+          };
+        }
+      }
+      return {
+        data: null,
+        error: new Error(
+          err.message?.includes('function')
+            ? 'Função de recuperação não encontrada no Supabase. Execute o script SQL no painel do Supabase.'
+            : (err.message || 'Erro ao redefinir senha.')
+        ),
+      };
+    }
   },
 
   /**
