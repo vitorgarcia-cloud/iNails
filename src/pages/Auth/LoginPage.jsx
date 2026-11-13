@@ -10,7 +10,7 @@ import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
 // CONTROLE DO BOTÃO DEMO:
 // Altere para true para exibir o botão Demo, ou false para manter oculto.
 // ============================================================================
-const EXIBIR_BOTAO_DEMO = true;
+const EXIBIR_BOTAO_DEMO = false;
 
 export function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
