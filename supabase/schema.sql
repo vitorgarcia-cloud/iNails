@@ -282,7 +282,7 @@ BEGIN
             'sucesso', false,
             'mensagem', 'Data de nascimento inválida.'
         );
-    END IF;
+    END;
 
     -- Localiza o perfil conferindo telefone e data de nascimento
     SELECT * INTO v_profile
@@ -339,7 +339,7 @@ BEGIN
         v_data_nasc := p_data_nascimento::DATE;
     EXCEPTION WHEN OTHERS THEN
         RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Data de nascimento inválida.');
-    END IF;
+    END;
 
     IF length(COALESCE(p_nova_senha, '')) < 6 THEN
         RETURN jsonb_build_object('sucesso', false, 'mensagem', 'A nova senha deve ter no mínimo 6 caracteres.');
@@ -359,20 +359,12 @@ BEGIN
         );
     END IF;
 
-    -- Atualiza a senha criptografada em auth.users utilizando pgcrypto
-    BEGIN
-        UPDATE auth.users
-        SET 
-            encrypted_password = extensions.crypt(p_nova_senha, extensions.gen_salt('bf')),
-            updated_at = now()
-        WHERE id = v_profile.user_id;
-    EXCEPTION WHEN OTHERS THEN
-        UPDATE auth.users
-        SET 
-            encrypted_password = crypt(p_nova_senha, gen_salt('bf')),
-            updated_at = now()
-        WHERE id = v_profile.user_id;
-    END;
+    -- Atualiza a senha criptografada em auth.users utilizando pgcrypto (schema extensions)
+    UPDATE auth.users
+    SET 
+        encrypted_password = extensions.crypt(p_nova_senha, extensions.gen_salt('bf')),
+        updated_at = now()
+    WHERE id = v_profile.user_id;
 
     RETURN jsonb_build_object(
         'sucesso', true,
