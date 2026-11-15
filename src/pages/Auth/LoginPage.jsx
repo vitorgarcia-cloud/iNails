@@ -5,6 +5,12 @@ import { useToast } from '../../hooks/useToast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import RecuperarSenhaModal from '../../components/auth/RecuperarSenhaModal';
+import {
+  formatarTelefoneInput,
+  validarTelefone,
+  validarDataNascimento,
+  validarSenha,
+} from '../../utils/authValidation';
 import { Phone, Lock, User, Store, Calendar, ArrowRight, PlayCircle } from 'lucide-react';
 
 // ============================================================================
@@ -28,41 +34,41 @@ export function LoginPage() {
   const navigate = useNavigate();
 
   const handleTelefoneChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-    let formatted = digits;
-    if (digits.length > 2 && digits.length <= 7) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    } else if (digits.length > 7) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-    }
-    setTelefone(formatted);
+    setTelefone(formatarTelefoneInput(e.target.value));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
-    const rawDigits = telefone.replace(/\D/g, '');
-    if (rawDigits.length < 10) {
-      toast.warning('Informe um número de telefone ou WhatsApp válido com DDD (Ex: 11 99999-9999).');
-      setLoading(false);
+    // Validações de entrada com Clean Code
+    const checkTel = validarTelefone(telefone);
+    if (!checkTel.valido) {
+      toast.warning(checkTel.mensagem);
       return;
     }
 
+    const checkSenha = validarSenha(password);
+    if (!checkSenha.valido) {
+      toast.warning(checkSenha.mensagem);
+      return;
+    }
+
+    if (isSignUp) {
+      if (!nome.trim() || !nomeEstudio.trim()) {
+        toast.warning('Informe seu nome e o nome do seu estúdio.');
+        return;
+      }
+
+      const checkData = validarDataNascimento(dataNascimento);
+      if (!checkData.valido) {
+        toast.warning(checkData.mensagem);
+        return;
+      }
+    }
+
+    setLoading(true);
     try {
       if (isSignUp) {
-        if (!nome.trim() || !nomeEstudio.trim()) {
-          toast.warning('Informe seu nome e o nome do seu estúdio.');
-          setLoading(false);
-          return;
-        }
-
-        if (!dataNascimento) {
-          toast.warning('Informe sua data de nascimento.');
-          setLoading(false);
-          return;
-        }
-
         const { error } = await signUp({
           telefone,
           password,

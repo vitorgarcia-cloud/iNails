@@ -4,13 +4,20 @@ import { useToast } from '../../hooks/useToast';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import {
+  formatarTelefoneInput,
+  validarTelefone,
+  validarDataNascimento,
+  validarConfirmacaoSenha,
+} from '../../utils/authValidation';
 import { KeyRound, Phone, Lock, Calendar, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
   const { validarRecuperacaoNascimento, redefinirSenhaPorNascimento } = useAuth();
   const toast = useToast();
 
-  const [step, setStep] = useState(1); // 1 = Telefone + Data de Nascimento, 2 = Nova Senha
+  // Estados do fluxo em duas etapas
+  const [step, setStep] = useState(1); // 1 = Confirmar Identidade, 2 = Cadastrar Nova Senha
   const [telefone, setTelefone] = useState(initialTelefone);
   const [dataNascimento, setDataNascimento] = useState('');
   const [nomeUsuario, setNomeUsuario] = useState('');
@@ -18,37 +25,31 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Formatação amigável de telefone brasileiro
+  // Manipulador de digitação com máscara automática (Clean Code)
   const handleTelefoneChange = (e) => {
-    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-    let formatted = digits;
-    if (digits.length > 2 && digits.length <= 7) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    } else if (digits.length > 7) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-    }
-    setTelefone(formatted);
+    setTelefone(formatarTelefoneInput(e.target.value));
   };
 
-  // Etapa 1: Validar Telefone + Data de Nascimento
+  // Etapa 1: Validar se telefone e data de nascimento conferem
   const handleValidarIdentidade = async (e) => {
     e.preventDefault();
 
-    const rawDigits = telefone.replace(/\D/g, '');
-    if (rawDigits.length < 10) {
-      toast.warning('Informe seu número de celular com DDD (Ex: 11 99999-9999).');
+    const checkTel = validarTelefone(telefone);
+    if (!checkTel.valido) {
+      toast.warning(checkTel.mensagem);
       return;
     }
 
-    if (!dataNascimento) {
-      toast.warning('Informe sua data de nascimento.');
+    const checkData = validarDataNascimento(dataNascimento);
+    if (!checkData.valido) {
+      toast.warning(checkData.mensagem);
       return;
     }
 
     setLoading(true);
     try {
       const { data, error } = await validarRecuperacaoNascimento({
-        telefone: rawDigits,
+        telefone,
         dataNascimento,
       });
 
@@ -59,7 +60,7 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
 
       setNomeUsuario(data?.nome || 'Nail Designer');
       setStep(2);
-      toast.success('Identidade confirmada! Crie sua nova senha.');
+      toast.success('Identidade confirmada com sucesso! Crie sua nova senha.');
     } catch {
       toast.error('Erro ao verificar seus dados. Tente novamente.');
     } finally {
@@ -67,25 +68,20 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
     }
   };
 
-  // Etapa 2: Salvar nova senha
+  // Etapa 2: Salvar nova senha no banco e conectar
   const handleSalvarNovaSenha = async (e) => {
     e.preventDefault();
 
-    if (!novaSenha || novaSenha.length < 6) {
-      toast.warning('A nova senha deve ter no mínimo 6 caracteres.');
-      return;
-    }
-
-    if (novaSenha !== confirmarSenha) {
-      toast.warning('As senhas digitadas não coincidem.');
+    const checkSenhas = validarConfirmacaoSenha(novaSenha, confirmarSenha);
+    if (!checkSenhas.valido) {
+      toast.warning(checkSenhas.mensagem);
       return;
     }
 
     setLoading(true);
     try {
-      const rawDigits = telefone.replace(/\D/g, '');
       const { error } = await redefinirSenhaPorNascimento({
-        telefone: rawDigits,
+        telefone,
         dataNascimento,
         novaSenha,
         autoLogin: true,
@@ -97,8 +93,8 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
         toast.success('Senha atualizada com sucesso! Bem-vinda de volta.');
         handleClose();
       }
-    } catch {
-      toast.error('Erro ao salvar nova senha. Tente novamente.');
+    } catch (err) {
+      toast.error(err.message || 'Erro ao salvar nova senha. Tente novamente.');
     } finally {
       setLoading(false);
     }

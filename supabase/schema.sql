@@ -236,27 +236,34 @@ CREATE TRIGGER on_auth_user_created
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ==============================================================================
--- 10. RECUPERAÇÃO DE SENHA VIA TELEFONE + DATA DE NASCIMENTO
+-- 10. RECUPERAÇÃO DE SENHA VIA TELEFONE + DATA DE NASCIMENTO (ROBUSTO E SEGURO)
 -- ==============================================================================
 
--- Remove recursos do método anterior (código de WhatsApp/SMS)
+-- Garante a extensão pgcrypto instalada no schema extensions (padrão Supabase)
+CREATE EXTENSION IF NOT EXISTS "pgcrypto" WITH SCHEMA extensions;
+
+-- Remove versões anteriores para evitar ambiguidades de tipos
 DROP FUNCTION IF EXISTS public.solicitar_codigo_recuperacao(TEXT);
 DROP FUNCTION IF EXISTS public.redefinir_senha_por_codigo(TEXT, TEXT, TEXT);
-ALTER TABLE public.profiles DROP COLUMN IF EXISTS codigo_recuperacao;
-ALTER TABLE public.profiles DROP COLUMN IF EXISTS codigo_recuperacao_expira;
+DROP FUNCTION IF EXISTS public.validar_recuperacao_nascimento(TEXT, DATE);
+DROP FUNCTION IF EXISTS public.validar_recuperacao_nascimento(TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.redefinir_senha_por_nascimento(TEXT, DATE, TEXT);
+DROP FUNCTION IF EXISTS public.redefinir_senha_por_nascimento(TEXT, TEXT, TEXT);
 
 -- 10.1 Função RPC para validar se o telefone e a data de nascimento conferem
+-- Aceita TEXT para evitar problemas de conversão de tipo no PostgREST
 CREATE OR REPLACE FUNCTION public.validar_recuperacao_nascimento(
     p_telefone TEXT,
-    p_data_nascimento DATE
+    p_data_nascimento TEXT
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth, pg_temp
+SET search_path = public, auth, extensions, pg_temp
 AS $$
 DECLARE
     v_clean_tel TEXT;
+    v_data_nasc DATE;
     v_profile RECORD;
 BEGIN
     v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
@@ -268,22 +275,23 @@ BEGIN
         );
     END IF;
 
-    IF p_data_nascimento IS NULL THEN
+    BEGIN
+        v_data_nasc := p_data_nascimento::DATE;
+    EXCEPTION WHEN OTHERS THEN
         RETURN jsonb_build_object(
             'sucesso', false,
-            'mensagem', 'Informe sua data de nascimento.'
+            'mensagem', 'Data de nascimento inválida.'
         );
     END IF;
 
-    -- Localiza o perfil da profissional correspondente
+    -- Localiza o perfil conferindo telefone e data de nascimento
     SELECT * INTO v_profile
     FROM public.profiles
     WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
-      AND data_nascimento = p_data_nascimento
+      AND data_nascimento = v_data_nasc
     LIMIT 1;
 
     IF NOT FOUND THEN
-        -- Verifica se o telefone existe para dar uma mensagem mais clara
         IF EXISTS (SELECT 1 FROM public.profiles WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel) THEN
             RETURN jsonb_build_object(
                 'sucesso', false,
@@ -308,16 +316,17 @@ $$;
 -- 10.2 Função RPC para redefinir a senha usando Telefone + Data de Nascimento
 CREATE OR REPLACE FUNCTION public.redefinir_senha_por_nascimento(
     p_telefone TEXT,
-    p_data_nascimento DATE,
+    p_data_nascimento TEXT,
     p_nova_senha TEXT
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, auth, pg_temp
+SET search_path = public, auth, extensions, pg_temp
 AS $$
 DECLARE
     v_clean_tel TEXT;
+    v_data_nasc DATE;
     v_profile RECORD;
 BEGIN
     v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
@@ -326,8 +335,10 @@ BEGIN
         RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Telefone inválido.');
     END IF;
 
-    IF p_data_nascimento IS NULL THEN
-        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Data de nascimento obrigatória.');
+    BEGIN
+        v_data_nasc := p_data_nascimento::DATE;
+    EXCEPTION WHEN OTHERS THEN
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Data de nascimento inválida.');
     END IF;
 
     IF length(COALESCE(p_nova_senha, '')) < 6 THEN
@@ -338,7 +349,7 @@ BEGIN
     SELECT * INTO v_profile
     FROM public.profiles
     WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
-      AND data_nascimento = p_data_nascimento
+      AND data_nascimento = v_data_nasc
     LIMIT 1;
 
     IF NOT FOUND THEN
@@ -348,12 +359,20 @@ BEGIN
         );
     END IF;
 
-    -- Atualiza a senha criptografada diretamente em auth.users
-    UPDATE auth.users
-    SET 
-        encrypted_password = crypt(p_nova_senha, gen_salt('bf')),
-        updated_at = now()
-    WHERE id = v_profile.user_id;
+    -- Atualiza a senha criptografada em auth.users utilizando pgcrypto
+    BEGIN
+        UPDATE auth.users
+        SET 
+            encrypted_password = extensions.crypt(p_nova_senha, extensions.gen_salt('bf')),
+            updated_at = now()
+        WHERE id = v_profile.user_id;
+    EXCEPTION WHEN OTHERS THEN
+        UPDATE auth.users
+        SET 
+            encrypted_password = crypt(p_nova_senha, gen_salt('bf')),
+            updated_at = now()
+        WHERE id = v_profile.user_id;
+    END;
 
     RETURN jsonb_build_object(
         'sucesso', true,
@@ -362,6 +381,6 @@ BEGIN
 END;
 $$;
 
--- Permissões de execução pública (para clientes anon e autenticados)
-GRANT EXECUTE ON FUNCTION public.validar_recuperacao_nascimento(TEXT, DATE) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.redefinir_senha_por_nascimento(TEXT, DATE, TEXT) TO anon, authenticated;
+-- Permissões de execução pública
+GRANT EXECUTE ON FUNCTION public.validar_recuperacao_nascimento(TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.redefinir_senha_por_nascimento(TEXT, TEXT, TEXT) TO anon, authenticated;

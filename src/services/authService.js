@@ -417,12 +417,13 @@ export const authService = {
         throw rpcError;
       }
     } catch (err) {
+      const isFunctionNotFound = err?.code === 'PGRST202' || err?.message?.toLowerCase().includes('could not find the function');
       return {
         data: null,
         error: new Error(
-          err.message?.includes('function')
+          isFunctionNotFound
             ? 'Função de recuperação não encontrada no Supabase. Execute o script SQL no SQL Editor do Supabase.'
-            : (err.message || 'Erro ao redefinir senha.')
+            : (err.message || 'Erro ao redefinir senha no banco de dados.')
         ),
       };
     }
