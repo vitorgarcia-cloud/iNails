@@ -123,11 +123,17 @@ export function AuthProvider({ children }) {
     }
   }
 
-  async function signUp({ telefone, email, password, nome, nomeEstudio }) {
+  async function signUp({ telefone, email, password, nome, nomeEstudio, dataNascimento }) {
     setLoading(true);
     try {
       const tel = telefone || email;
-      const { data, error } = await authService.signUp({ telefone: tel, password, nome, nomeEstudio });
+      const { data, error } = await authService.signUp({
+        telefone: tel,
+        password,
+        nome,
+        nomeEstudio,
+        dataNascimento,
+      });
       if (error) throw error;
       if (data?.session?.user || data?.user) {
         const newUser = data.session?.user || data.user;
@@ -182,12 +188,12 @@ export function AuthProvider({ children }) {
     return { data, error };
   }
 
-  async function solicitarCodigoRecuperacao(telefone) {
-    return await authService.solicitarCodigoRecuperacao(telefone);
+  async function validarRecuperacaoNascimento({ telefone, dataNascimento }) {
+    return await authService.validarRecuperacaoNascimento({ telefone, dataNascimento });
   }
 
-  async function redefinirSenhaComCodigo({ telefone, codigo, novaSenha, autoLogin = true }) {
-    const res = await authService.redefinirSenhaComCodigo({ telefone, codigo, novaSenha });
+  async function redefinirSenhaPorNascimento({ telefone, dataNascimento, novaSenha, autoLogin = true }) {
+    const res = await authService.redefinirSenhaPorNascimento({ telefone, dataNascimento, novaSenha });
     if (res.error) return res;
 
     // Se solicitado autoLogin, efetua login imediato com as novas credenciais
@@ -208,8 +214,8 @@ export function AuthProvider({ children }) {
     loginDemo,
     signOut,
     updateProfile,
-    solicitarCodigoRecuperacao,
-    redefinirSenhaComCodigo,
+    validarRecuperacaoNascimento,
+    redefinirSenhaPorNascimento,
     refreshProfile: () => user && loadUserProfile(user.id),
   };
 

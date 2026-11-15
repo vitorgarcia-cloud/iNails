@@ -4,21 +4,21 @@ import { useToast } from '../../hooks/useToast';
 import Modal from '../ui/Modal';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
-import { KeyRound, Phone, Lock, MessageCircle, MessageSquare, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { KeyRound, Phone, Lock, Calendar, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
-  const { solicitarCodigoRecuperacao, redefinirSenhaComCodigo } = useAuth();
+  const { validarRecuperacaoNascimento, redefinirSenhaPorNascimento } = useAuth();
   const toast = useToast();
 
-  const [step, setStep] = useState(1); // 1 = Digitar telefone, 2 = Digitar código e nova senha
+  const [step, setStep] = useState(1); // 1 = Telefone + Data de Nascimento, 2 = Nova Senha
   const [telefone, setTelefone] = useState(initialTelefone);
-  const [codigo, setCodigo] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
+  const [nomeUsuario, setNomeUsuario] = useState('');
   const [novaSenha, setNovaSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
   const [loading, setLoading] = useState(false);
-  const [codigoGeradoInfo, setCodigoGeradoInfo] = useState(null);
 
-  // Formatação de telefone
+  // Formatação amigável de telefone brasileiro
   const handleTelefoneChange = (e) => {
     const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
     let formatted = digits;
@@ -30,52 +30,49 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
     setTelefone(formatted);
   };
 
-  const handleSolicitarCodigo = async (tipoEnvio = 'whatsapp') => {
+  // Etapa 1: Validar Telefone + Data de Nascimento
+  const handleValidarIdentidade = async (e) => {
+    e.preventDefault();
+
     const rawDigits = telefone.replace(/\D/g, '');
     if (rawDigits.length < 10) {
-      toast.warning('Informe um número de celular válido com DDD (Ex: 11 99999-9999).');
+      toast.warning('Informe seu número de celular com DDD (Ex: 11 99999-9999).');
+      return;
+    }
+
+    if (!dataNascimento) {
+      toast.warning('Informe sua data de nascimento.');
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error } = await solicitarCodigoRecuperacao(rawDigits);
+      const { data, error } = await validarRecuperacaoNascimento({
+        telefone: rawDigits,
+        dataNascimento,
+      });
+
       if (error) {
-        toast.error(error.message || 'Erro ao gerar código de recuperação.');
+        toast.error(error.message || 'Dados não conferem. Verifique o telefone e a data de nascimento.');
         return;
       }
 
-      setCodigoGeradoInfo(data);
+      setNomeUsuario(data?.nome || 'Nail Designer');
       setStep(2);
-
-      // Dispara o envio prioritário via WhatsApp ou SMS
-      if (tipoEnvio === 'whatsapp' && data?.linkWhatsApp) {
-        window.open(data.linkWhatsApp, '_blank', 'noopener,noreferrer');
-        toast.success(`Abrindo WhatsApp para enviar o código para ${telefone}!`);
-      } else if (tipoEnvio === 'sms' && data?.linkSMS) {
-        window.location.href = data.linkSMS;
-        toast.success(`Abrindo aplicativo de SMS para enviar o código para ${telefone}!`);
-      } else {
-        toast.success('Código gerado com sucesso! Verifique a mensagem recebida.');
-      }
-    } catch (err) {
-      toast.error('Ocorreu um erro ao processar seu pedido. Tente novamente.');
+      toast.success('Identidade confirmada! Crie sua nova senha.');
+    } catch {
+      toast.error('Erro ao verificar seus dados. Tente novamente.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRedefinirSenha = async (e) => {
+  // Etapa 2: Salvar nova senha
+  const handleSalvarNovaSenha = async (e) => {
     e.preventDefault();
-    const cleanCode = codigo.replace(/\D/g, '').slice(0, 6);
-
-    if (cleanCode.length !== 6) {
-      toast.warning('O código de verificação deve conter 6 números.');
-      return;
-    }
 
     if (!novaSenha || novaSenha.length < 6) {
-      toast.warning('A nova senha deve ter pelo menos 6 caracteres.');
+      toast.warning('A nova senha deve ter no mínimo 6 caracteres.');
       return;
     }
 
@@ -86,20 +83,21 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
 
     setLoading(true);
     try {
-      const { error } = await redefinirSenhaComCodigo({
-        telefone,
-        codigo: cleanCode,
+      const rawDigits = telefone.replace(/\D/g, '');
+      const { error } = await redefinirSenhaPorNascimento({
+        telefone: rawDigits,
+        dataNascimento,
         novaSenha,
         autoLogin: true,
       });
 
       if (error) {
-        toast.error(error.message || 'Erro ao redefinir senha. Verifique o código digitado.');
+        toast.error(error.message || 'Erro ao redefinir a senha.');
       } else {
-        toast.success('Senha alterada com sucesso! Você já está conectada.');
+        toast.success('Senha atualizada com sucesso! Bem-vinda de volta.');
         handleClose();
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro ao salvar nova senha. Tente novamente.');
     } finally {
       setLoading(false);
@@ -108,10 +106,9 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
 
   const handleClose = () => {
     setStep(1);
-    setCodigo('');
     setNovaSenha('');
     setConfirmarSenha('');
-    setCodigoGeradoInfo(null);
+    setNomeUsuario('');
     onClose();
   };
 
@@ -119,25 +116,24 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Recuperação de Senha"
+      title={step === 1 ? 'Recuperar Senha' : 'Criar Nova Senha'}
       size="md"
     >
       {step === 1 ? (
-        <div className="space-y-5">
+        <form onSubmit={handleValidarIdentidade} className="space-y-4">
           <div className="text-center py-2">
             <div className="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-sm border border-brand-100">
               <KeyRound className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-slate-800">Esqueceu sua senha?</h3>
+            <h3 className="text-base font-bold text-slate-800">Recuperação de Acesso</h3>
             <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
-              Digite seu número de celular. Você receberá um código de 6 dígitos via{' '}
-              <strong className="text-slate-700">WhatsApp</strong> para criar uma nova senha.
+              Digite seu celular e data de nascimento cadastrados para confirmar sua identidade e redefinir a senha.
             </p>
           </div>
 
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+          <div className="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
             <Input
-              label="Seu Telefone / WhatsApp Cadastrado *"
+              label="Telefone / Celular *"
               type="tel"
               placeholder="(11) 99999-9999"
               value={telefone}
@@ -146,62 +142,53 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
               autoFocus
               required
             />
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Data de Nascimento *
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dataNascimento}
+                  onChange={(e) => setDataNascimento(e.target.value)}
+                  className="w-full text-sm py-2.5 px-3.5 pl-10 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-xs"
+                  required
+                />
+                <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                A mesma data de nascimento informada no seu cadastro.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-2.5 pt-1">
+          <div className="pt-2">
             <Button
-              type="button"
+              type="submit"
               variant="primary"
               fullWidth
               size="lg"
               loading={loading}
-              onClick={() => handleSolicitarCodigo('whatsapp')}
-              icon={MessageCircle}
-              className="bg-emerald-600 hover:bg-emerald-700 border-none text-white shadow-emerald-500/20"
+              icon={ArrowRight}
             >
-              Enviar Código via WhatsApp
+              Verificar e Continuar
             </Button>
-
-            <button
-              type="button"
-              disabled={loading}
-              onClick={() => handleSolicitarCodigo('sms')}
-              className="flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-              Prefiro receber por SMS
-            </button>
           </div>
-        </div>
+        </form>
       ) : (
-        <form onSubmit={handleRedefinirSenha} className="space-y-4">
+        <form onSubmit={handleSalvarNovaSenha} className="space-y-4">
           <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-3 flex items-start gap-2.5">
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
             <div className="text-xs text-emerald-800">
-              <p className="font-bold">Código enviado para {telefone}!</p>
+              <p className="font-bold">Identidade confirmada com sucesso!</p>
               <p className="text-emerald-700 mt-0.5">
-                Digite o código de 6 dígitos que você recebeu e cadastre a sua nova senha.
+                Olá, <strong>{nomeUsuario}</strong>! Digite a sua nova senha abaixo para acessar seu estúdio.
               </p>
             </div>
           </div>
 
           <div className="space-y-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1.5 text-center">
-                Código de 6 Dígitos *
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                placeholder="123456"
-                value={codigo}
-                onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                className="w-full text-center text-2xl tracking-[0.35em] font-mono font-bold py-3 px-4 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-sm"
-                autoFocus
-                required
-              />
-            </div>
-
             <Input
               label="Nova Senha (mínimo 6 caracteres) *"
               type="password"
@@ -209,6 +196,7 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
               value={novaSenha}
               onChange={(e) => setNovaSenha(e.target.value)}
               icon={Lock}
+              autoFocus
               required
             />
 
@@ -232,28 +220,17 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
               loading={loading}
               icon={CheckCircle2}
             >
-              Salvar Nova Senha e Entrar
+              Salvar Nova Senha e Conectar
             </Button>
 
-            <div className="flex items-center justify-between pt-1">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 transition-colors"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                Trocar número
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleSolicitarCodigo('whatsapp')}
-                disabled={loading}
-                className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-              >
-                Reenviar código
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="inline-flex items-center justify-center gap-1.5 py-1.5 text-xs text-slate-500 hover:text-slate-800 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Voltar e corrigir dados
+            </button>
           </div>
         </form>
       )}

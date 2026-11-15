@@ -59,6 +59,7 @@ export function PerfilPage() {
   const [nome, setNome] = useState('');
   const [nomeEstudio, setNomeEstudio] = useState('');
   const [telefone, setTelefone] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [fotoUrl, setFotoUrl] = useState('');
   const [endereco, setEndereco] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -87,6 +88,7 @@ export function PerfilPage() {
       setNome(profile.nome || '');
       setNomeEstudio(profile.nome_estudio || '');
       setTelefone(profile.telefone || '');
+      setDataNascimento(profile.data_nascimento || '');
       setFotoUrl(profile.foto_url || '/logo.png');
       setEndereco(profile.endereco || '');
       setInstagram(profile.instagram || '');
@@ -143,6 +145,7 @@ export function PerfilPage() {
         nome,
         nome_estudio: nomeEstudio,
         telefone,
+        data_nascimento: dataNascimento || null,
         foto_url: fotoUrl,
         endereco,
         instagram,
@@ -376,6 +379,26 @@ export function PerfilPage() {
                 icon={Phone}
               />
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                  Sua Data de Nascimento
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={dataNascimento}
+                    onChange={(e) => setDataNascimento(e.target.value)}
+                    className="w-full text-sm py-2 px-3 pl-9 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-xs"
+                  />
+                  <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Usada para recuperar sua senha com segurança
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Input
                 label="Instagram / Redes Sociais"
                 placeholder="@seu.estudio"
@@ -383,15 +406,15 @@ export function PerfilPage() {
                 onChange={(e) => setInstagram(e.target.value)}
                 icon={AtSign}
               />
-            </div>
 
-            <Input
-              label="Local de Atendimento"
-              placeholder="Rua das Flores, 120 - Sala 4 - Centro"
-              value={endereco}
-              onChange={(e) => setEndereco(e.target.value)}
-              icon={MapPin}
-            />
+              <Input
+                label="Local de Atendimento"
+                placeholder="Rua das Flores, 120 - Sala 4 - Centro"
+                value={endereco}
+                onChange={(e) => setEndereco(e.target.value)}
+                icon={MapPin}
+              />
+            </div>
           </Card>
 
           {/* Chave Pix para Cobrança / Sinais */}

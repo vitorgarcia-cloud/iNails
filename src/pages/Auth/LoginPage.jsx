@@ -5,7 +5,7 @@ import { useToast } from '../../hooks/useToast';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import RecuperarSenhaModal from '../../components/auth/RecuperarSenhaModal';
-import { Phone, Lock, User, Store, ArrowRight, PlayCircle } from 'lucide-react';
+import { Phone, Lock, User, Store, Calendar, ArrowRight, PlayCircle } from 'lucide-react';
 
 // ============================================================================
 // CONTROLE DO BOTÃO DEMO:
@@ -19,6 +19,7 @@ export function LoginPage() {
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [nomeEstudio, setNomeEstudio] = useState('');
+  const [dataNascimento, setDataNascimento] = useState('');
   const [loading, setLoading] = useState(false);
   const [showRecuperarModal, setShowRecuperarModal] = useState(false);
 
@@ -56,11 +57,18 @@ export function LoginPage() {
           return;
         }
 
+        if (!dataNascimento) {
+          toast.warning('Informe sua data de nascimento.');
+          setLoading(false);
+          return;
+        }
+
         const { error } = await signUp({
           telefone,
           password,
           nome: nome.trim(),
           nomeEstudio: nomeEstudio.trim(),
+          dataNascimento,
         });
 
         if (error) {
@@ -154,6 +162,25 @@ export function LoginPage() {
                   icon={Store}
                   required
                 />
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                    Data de Nascimento *
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={dataNascimento}
+                      onChange={(e) => setDataNascimento(e.target.value)}
+                      className="w-full text-sm py-2.5 px-3.5 pl-10 rounded-xl border border-slate-200 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent transition-all shadow-xs"
+                      required={isSignUp}
+                    />
+                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Utilizada para recuperar sua senha com segurança.
+                  </p>
+                </div>
               </>
             )}
 

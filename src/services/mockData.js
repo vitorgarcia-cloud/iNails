@@ -11,6 +11,7 @@ export const INITIAL_MOCK_DATA = {
     nome: 'Jéssica Silva',
     nome_estudio: 'Studio Jéssica Silva Nail Designer',
     telefone: '(11) 98765-4321',
+    data_nascimento: '1995-05-15',
     foto_url: 'https://images.unsplash.com/photo-1595475243692-392820991677?w=240&auto=format&fit=crop&q=80',
     instagram: '@studiojessicasilva',
     endereco: 'Rua das Flores, 120 - Sala 4 - Centro',

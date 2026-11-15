@@ -29,11 +29,13 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     horario_fim TEXT DEFAULT '19:00',
     intervalo_padrao_dias INTEGER DEFAULT 21,
     mensagem_whatsapp TEXT DEFAULT 'Olá {cliente}! ✨ Passando para confirmar seu horário no {estudio} para {servico} no dia {data} às {hora}. Podemos confirmar? 💅',
+    data_nascimento DATE DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Garantir colunas adicionais caso a tabela já tenha sido criada anteriormente
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS data_nascimento DATE DEFAULT NULL;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS foto_url TEXT DEFAULT '';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS endereco TEXT DEFAULT '';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS instagram TEXT DEFAULT '';
@@ -192,19 +194,27 @@ DECLARE
     nome_usuario TEXT;
     estudio_usuario TEXT;
     telefone_usuario TEXT;
+    data_nasc_usuario DATE;
 BEGIN
     nome_usuario := COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1));
     estudio_usuario := COALESCE(NEW.raw_user_meta_data->>'nome_estudio', 'Studio ' || nome_usuario);
     telefone_usuario := COALESCE(NEW.raw_user_meta_data->>'telefone', '');
+    
+    BEGIN
+        data_nasc_usuario := (NEW.raw_user_meta_data->>'data_nascimento')::DATE;
+    EXCEPTION WHEN OTHERS THEN
+        data_nasc_usuario := NULL;
+    END;
 
     -- Insere o perfil padrão da profissional
-    INSERT INTO public.profiles (user_id, nome, nome_estudio, telefone)
-    VALUES (NEW.id, nome_usuario, estudio_usuario, telefone_usuario)
+    INSERT INTO public.profiles (user_id, nome, nome_estudio, telefone, data_nascimento)
+    VALUES (NEW.id, nome_usuario, estudio_usuario, telefone_usuario, data_nasc_usuario)
     ON CONFLICT (user_id) DO UPDATE
     SET 
         nome = CASE WHEN public.profiles.nome = '' THEN EXCLUDED.nome ELSE public.profiles.nome END,
         nome_estudio = CASE WHEN public.profiles.nome_estudio = 'Meu Estúdio' THEN EXCLUDED.nome_estudio ELSE public.profiles.nome_estudio END,
-        telefone = CASE WHEN public.profiles.telefone = '' THEN EXCLUDED.telefone ELSE public.profiles.telefone END;
+        telefone = CASE WHEN public.profiles.telefone = '' THEN EXCLUDED.telefone ELSE public.profiles.telefone END,
+        data_nascimento = CASE WHEN public.profiles.data_nascimento IS NULL THEN EXCLUDED.data_nascimento ELSE public.profiles.data_nascimento END;
 
     -- Insere o catálogo de serviços essenciais padrão para a nova profissional
     INSERT INTO public.servicos_base (user_id, nome, intervalo_dias_manutencao, valor_padrao)
@@ -226,15 +236,20 @@ CREATE TRIGGER on_auth_user_created
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- ==============================================================================
--- 10. RECUPERAÇÃO DE SENHA VIA WHATSAPP / SMS (CÓDIGO OTP DE 6 DÍGITOS)
+-- 10. RECUPERAÇÃO DE SENHA VIA TELEFONE + DATA DE NASCIMENTO
 -- ==============================================================================
 
--- Colunas para controle de código temporário de recuperação
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS codigo_recuperacao TEXT DEFAULT NULL;
-ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS codigo_recuperacao_expira TIMESTAMP WITH TIME ZONE DEFAULT NULL;
+-- Remove recursos do método anterior (código de WhatsApp/SMS)
+DROP FUNCTION IF EXISTS public.solicitar_codigo_recuperacao(TEXT);
+DROP FUNCTION IF EXISTS public.redefinir_senha_por_codigo(TEXT, TEXT, TEXT);
+ALTER TABLE public.profiles DROP COLUMN IF EXISTS codigo_recuperacao;
+ALTER TABLE public.profiles DROP COLUMN IF EXISTS codigo_recuperacao_expira;
 
--- 10.1 Função RPC para gerar o código de recuperação para o telefone informado
-CREATE OR REPLACE FUNCTION public.solicitar_codigo_recuperacao(p_telefone TEXT)
+-- 10.1 Função RPC para validar se o telefone e a data de nascimento conferem
+CREATE OR REPLACE FUNCTION public.validar_recuperacao_nascimento(
+    p_telefone TEXT,
+    p_data_nascimento DATE
+)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -243,12 +258,9 @@ AS $$
 DECLARE
     v_clean_tel TEXT;
     v_profile RECORD;
-    v_codigo TEXT;
-    v_expira TIMESTAMP WITH TIME ZONE;
 BEGIN
-    -- Limpa caracteres não numéricos
     v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
-    
+
     IF length(v_clean_tel) < 10 THEN
         RETURN jsonb_build_object(
             'sucesso', false,
@@ -256,43 +268,47 @@ BEGIN
         );
     END IF;
 
+    IF p_data_nascimento IS NULL THEN
+        RETURN jsonb_build_object(
+            'sucesso', false,
+            'mensagem', 'Informe sua data de nascimento.'
+        );
+    END IF;
+
     -- Localiza o perfil da profissional correspondente
     SELECT * INTO v_profile
     FROM public.profiles
     WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
+      AND data_nascimento = p_data_nascimento
     LIMIT 1;
 
     IF NOT FOUND THEN
-        RETURN jsonb_build_object(
-            'sucesso', false,
-            'mensagem', 'Nenhum estúdio encontrado com este número de telefone.'
-        );
+        -- Verifica se o telefone existe para dar uma mensagem mais clara
+        IF EXISTS (SELECT 1 FROM public.profiles WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel) THEN
+            RETURN jsonb_build_object(
+                'sucesso', false,
+                'mensagem', 'A data de nascimento informada não confere com o cadastro.'
+            );
+        ELSE
+            RETURN jsonb_build_object(
+                'sucesso', false,
+                'mensagem', 'Nenhum estúdio encontrado com este número de telefone.'
+            );
+        END IF;
     END IF;
-
-    -- Gera código numérico de 6 dígitos
-    v_codigo := lpad((floor(random() * 900000) + 100000)::text, 6, '0');
-    v_expira := now() + interval '15 minutes';
-
-    -- Atualiza no perfil
-    UPDATE public.profiles
-    SET 
-        codigo_recuperacao = v_codigo,
-        codigo_recuperacao_expira = v_expira
-    WHERE id = v_profile.id;
 
     RETURN jsonb_build_object(
         'sucesso', true,
-        'codigo', v_codigo,
         'nome', COALESCE(v_profile.nome, 'Nail Designer'),
         'telefone', v_clean_tel
     );
 END;
 $$;
 
--- 10.2 Função RPC para validar código e atualizar a senha em auth.users
-CREATE OR REPLACE FUNCTION public.redefinir_senha_por_codigo(
+-- 10.2 Função RPC para redefinir a senha usando Telefone + Data de Nascimento
+CREATE OR REPLACE FUNCTION public.redefinir_senha_por_nascimento(
     p_telefone TEXT,
-    p_codigo TEXT,
+    p_data_nascimento DATE,
     p_nova_senha TEXT
 )
 RETURNS JSONB
@@ -302,36 +318,33 @@ SET search_path = public, auth, pg_temp
 AS $$
 DECLARE
     v_clean_tel TEXT;
-    v_clean_code TEXT;
     v_profile RECORD;
 BEGIN
     v_clean_tel := regexp_replace(COALESCE(p_telefone, ''), '\D', '', 'g');
-    v_clean_code := trim(COALESCE(p_codigo, ''));
 
     IF length(v_clean_tel) < 10 THEN
         RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Telefone inválido.');
     END IF;
 
-    IF length(v_clean_code) <> 6 THEN
-        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'O código deve ter 6 dígitos.');
+    IF p_data_nascimento IS NULL THEN
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'Data de nascimento obrigatória.');
     END IF;
 
     IF length(COALESCE(p_nova_senha, '')) < 6 THEN
         RETURN jsonb_build_object('sucesso', false, 'mensagem', 'A nova senha deve ter no mínimo 6 caracteres.');
     END IF;
 
-    -- Localiza o perfil com o código válido
+    -- Localiza o perfil conferindo Telefone + Data de Nascimento
     SELECT * INTO v_profile
     FROM public.profiles
     WHERE regexp_replace(telefone, '\D', '', 'g') = v_clean_tel
-      AND codigo_recuperacao = v_clean_code
-      AND codigo_recuperacao_expira > now()
+      AND data_nascimento = p_data_nascimento
     LIMIT 1;
 
     IF NOT FOUND THEN
         RETURN jsonb_build_object(
             'sucesso', false,
-            'mensagem', 'Código de verificação incorreto ou expirado. Solicite um novo código.'
+            'mensagem', 'Dados não conferem. Verifique o telefone e a data de nascimento.'
         );
     END IF;
 
@@ -342,13 +355,6 @@ BEGIN
         updated_at = now()
     WHERE id = v_profile.user_id;
 
-    -- Invalida o código após o uso
-    UPDATE public.profiles
-    SET 
-        codigo_recuperacao = NULL,
-        codigo_recuperacao_expira = NULL
-    WHERE id = v_profile.id;
-
     RETURN jsonb_build_object(
         'sucesso', true,
         'mensagem', 'Senha redefinida com sucesso!'
@@ -357,5 +363,5 @@ END;
 $$;
 
 -- Permissões de execução pública (para clientes anon e autenticados)
-GRANT EXECUTE ON FUNCTION public.solicitar_codigo_recuperacao(TEXT) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.redefinir_senha_por_codigo(TEXT, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.validar_recuperacao_nascimento(TEXT, DATE) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.redefinir_senha_por_nascimento(TEXT, DATE, TEXT) TO anon, authenticated;

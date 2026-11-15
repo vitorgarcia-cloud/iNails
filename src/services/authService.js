@@ -93,7 +93,7 @@ export const authService = {
   /**
    * Cria nova conta de nail designer usando TELEFONE e SENHA
    */
-  async signUp({ telefone, password, nome, nomeEstudio }) {
+  async signUp({ telefone, password, nome, nomeEstudio, dataNascimento }) {
     // Garante que o modo demo está desativado para novos usuários reais
     localStorage.removeItem(DEMO_FLAG_KEY);
     localStorage.removeItem(DEMO_USER_SESSION_KEY);
@@ -130,6 +130,7 @@ export const authService = {
           nome: nome.trim(),
           nome_estudio: (nomeEstudio || `Studio ${nome}`).trim(),
           telefone: digits,
+          data_nascimento: dataNascimento || null,
         }
       }
     });
@@ -152,8 +153,13 @@ export const authService = {
         if (loginAttempt.data.session.user) {
           localStorage.setItem(AUTH_USER_KEY, JSON.stringify(loginAttempt.data.session.user));
         }
+        if (dataNascimento) {
+          await this.updateProfile(loginAttempt.data.session.user.id, { data_nascimento: dataNascimento });
+        }
         return { data: loginAttempt.data, error: null };
       }
+    } else if (data?.session?.user && dataNascimento) {
+      await this.updateProfile(data.session.user.id, { data_nascimento: dataNascimento });
     }
 
     return { data, error: null };
@@ -268,9 +274,9 @@ export const authService = {
   },
 
   /**
-   * Solicita código de 6 dígitos para recuperação de senha (via WhatsApp ou SMS)
+   * Valida se o Telefone e a Data de Nascimento conferem com o cadastro
    */
-  async solicitarCodigoRecuperacao(telefone) {
+  async validarRecuperacaoNascimento({ telefone, dataNascimento }) {
     const digits = cleanTelefone(telefone);
     if (!digits || digits.length < 10) {
       return {
@@ -279,23 +285,31 @@ export const authService = {
       };
     }
 
-    if (isDemoSession() || !isSupabaseConfigured) {
-      const codigo = String(Math.floor(100000 + Math.random() * 900000));
-      const expira = Date.now() + 15 * 60 * 1000;
-      localStorage.setItem(DEMO_RESET_KEY, JSON.stringify({ telefone: digits, codigo, expira }));
+    if (!dataNascimento) {
+      return {
+        data: null,
+        error: new Error('Informe sua data de nascimento.')
+      };
+    }
 
-      const mensagem = `Olá! ✨ Seu código de verificação para redefinir a senha no iNails é: *${codigo}* (válido por 15 minutos).`;
-      const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
-      const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
+    if (isDemoSession() || !isSupabaseConfigured) {
+      const db = getMockDB();
+      const mockTel = cleanTelefone(db.profile?.telefone || '');
+      const mockData = db.profile?.data_nascimento;
+
+      if (digits === mockTel && mockData && dataNascimento !== mockData) {
+        return {
+          data: null,
+          error: new Error('A data de nascimento não confere com o cadastro demo (Dica: 15/05/1995).')
+        };
+      }
 
       return {
         data: {
-          codigo,
-          nome: 'Usuária Demo',
+          sucesso: true,
+          nome: db.profile?.nome || 'Nail Designer',
           telefone: digits,
-          mensagem,
-          linkWhatsApp,
-          linkSMS,
+          dataNascimento,
         },
         error: null,
       };
@@ -303,113 +317,94 @@ export const authService = {
 
     // Tenta via RPC no Supabase
     try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('solicitar_codigo_recuperacao', {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('validar_recuperacao_nascimento', {
         p_telefone: digits,
+        p_data_nascimento: dataNascimento,
       });
 
       if (!rpcError && rpcData?.sucesso) {
-        const codigo = rpcData.codigo;
-        const nome = rpcData.nome || 'Nail Designer';
-        const mensagem = `Olá, ${nome}! ✨ Seu código de recuperação de senha no iNails é: *${codigo}* (válido por 15 minutos).`;
-        const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
-        const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
-
         return {
           data: {
-            codigo,
-            nome,
+            sucesso: true,
+            nome: rpcData.nome || 'Nail Designer',
             telefone: digits,
-            mensagem,
-            linkWhatsApp,
-            linkSMS,
+            dataNascimento,
           },
           error: null,
         };
       }
 
       if (rpcData && !rpcData.sucesso) {
-        return { data: null, error: new Error(rpcData.mensagem || 'Telefone não encontrado.') };
+        return { data: null, error: new Error(rpcData.mensagem || 'Dados incorretos.') };
       }
+
+      if (rpcError) throw rpcError;
     } catch {
-      // continua para fallback caso RPC ainda não tenha sido criado no Supabase
-    }
+      // Fallback consultando a tabela profiles diretamente
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('nome, telefone, data_nascimento, user_id')
+        .eq('telefone', digits)
+        .maybeSingle();
 
-    // Fallback caso a função RPC ainda não tenha sido criada no Supabase
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('nome, telefone, user_id')
-      .eq('telefone', digits)
-      .maybeSingle();
+      if (!profile) {
+        return {
+          data: null,
+          error: new Error('Nenhum estúdio cadastrado com este número de telefone.')
+        };
+      }
 
-    if (!profile) {
+      if (profile.data_nascimento && profile.data_nascimento !== dataNascimento) {
+        return {
+          data: null,
+          error: new Error('A data de nascimento informada não confere com o cadastro.')
+        };
+      }
+
       return {
-        data: null,
-        error: new Error('Nenhuma conta foi encontrada com este número de telefone.')
+        data: {
+          sucesso: true,
+          nome: profile.nome || 'Nail Designer',
+          telefone: digits,
+          dataNascimento,
+        },
+        error: null,
       };
     }
-
-    const codigo = String(Math.floor(100000 + Math.random() * 900000));
-    const expira = Date.now() + 15 * 60 * 1000;
-    localStorage.setItem(`inails_reset_${digits}`, JSON.stringify({ codigo, expira, user_id: profile.user_id }));
-
-    const mensagem = `Olá, ${profile.nome || 'Nail Designer'}! ✨ Seu código de recuperação de senha no iNails é: *${codigo}* (válido por 15 minutos).`;
-    const linkWhatsApp = gerarLinkWhatsApp(digits, mensagem);
-    const linkSMS = `sms:${normalizarTelefoneWhatsApp(digits)}?body=${encodeURIComponent(mensagem)}`;
-
-    return {
-      data: {
-        codigo,
-        nome: profile.nome,
-        telefone: digits,
-        mensagem,
-        linkWhatsApp,
-        linkSMS,
-      },
-      error: null,
-    };
   },
 
   /**
-   * Valida o código e redefine a senha do usuário
+   * Redefine a senha utilizando Telefone + Data de Nascimento
    */
-  async redefinirSenhaComCodigo({ telefone, codigo, novaSenha }) {
+  async redefinirSenhaPorNascimento({ telefone, dataNascimento, novaSenha }) {
     const digits = cleanTelefone(telefone);
     if (!digits || digits.length < 10) {
       return { data: null, error: new Error('Telefone inválido.') };
     }
-    if (!codigo || codigo.trim().length !== 6) {
-      return { data: null, error: new Error('Informe o código de 6 dígitos.') };
+    if (!dataNascimento) {
+      return { data: null, error: new Error('Data de nascimento é obrigatória.') };
     }
     if (!novaSenha || novaSenha.length < 6) {
       return { data: null, error: new Error('A nova senha deve ter no mínimo 6 caracteres.') };
     }
 
     if (isDemoSession() || !isSupabaseConfigured) {
-      const saved = localStorage.getItem(DEMO_RESET_KEY);
-      if (!saved) {
-        return { data: null, error: new Error('Nenhum código pendente para este telefone.') };
-      }
-      const parsed = JSON.parse(saved);
-      if (parsed.codigo !== codigo.trim()) {
-        return { data: null, error: new Error('Código de verificação incorreto.') };
-      }
-      if (Date.now() > parsed.expira) {
-        return { data: null, error: new Error('Código expirado. Solicite outro código.') };
-      }
-      localStorage.removeItem(DEMO_RESET_KEY);
-      return { data: { sucesso: true }, error: null };
+      return {
+        data: { sucesso: true, mensagem: 'Senha redefinida com sucesso!' },
+        error: null,
+      };
     }
 
     // Executa a função RPC segura com SECURITY DEFINER no Supabase
     try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('redefinir_senha_por_codigo', {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('redefinir_senha_por_nascimento', {
         p_telefone: digits,
-        p_codigo: codigo.trim(),
+        p_data_nascimento: dataNascimento,
         p_nova_senha: novaSenha,
       });
 
       if (!rpcError && rpcData?.sucesso) {
-        // Realiza login automático com a nova senha
+        // Realiza login automático imediato com a nova senha
         const loginRes = await this.signIn({ telefone: digits, password: novaSenha });
         return { data: rpcData, error: loginRes.error };
       }
@@ -422,22 +417,11 @@ export const authService = {
         throw rpcError;
       }
     } catch (err) {
-      const savedFallback = localStorage.getItem(`inails_reset_${digits}`);
-      if (savedFallback) {
-        const parsed = JSON.parse(savedFallback);
-        if (parsed.codigo === codigo.trim() && Date.now() <= parsed.expira) {
-          localStorage.removeItem(`inails_reset_${digits}`);
-          return {
-            data: { sucesso: true, aviso: 'Execute o script SQL no Supabase para habilitar a atualização de senha no banco.' },
-            error: null,
-          };
-        }
-      }
       return {
         data: null,
         error: new Error(
           err.message?.includes('function')
-            ? 'Função de recuperação não encontrada no Supabase. Execute o script SQL no painel do Supabase.'
+            ? 'Função de recuperação não encontrada no Supabase. Execute o script SQL no SQL Editor do Supabase.'
             : (err.message || 'Erro ao redefinir senha.')
         ),
       };
