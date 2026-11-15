@@ -186,7 +186,7 @@ export function RecuperarSenhaModal({ isOpen, onClose, initialTelefone = '' }) {
 
           <div className="space-y-3">
             <Input
-              label="Nova Senha (mínimo 6 caracteres) *"
+              label="Nova Senha (mínimo 11 caracteres) *"
               type="password"
               placeholder="••••••••"
               value={novaSenha}

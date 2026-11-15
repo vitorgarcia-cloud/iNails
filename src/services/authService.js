@@ -109,7 +109,7 @@ export const authService = {
     if (!password || password.length < 6) {
       return {
         data: null,
-        error: new Error('A senha deve ter no mínimo 6 caracteres.')
+        error: new Error('A senha deve ter no mínimo 11 caracteres.')
       };
     }
 
@@ -385,7 +385,7 @@ export const authService = {
       return { data: null, error: new Error('Data de nascimento é obrigatória.') };
     }
     if (!novaSenha || novaSenha.length < 6) {
-      return { data: null, error: new Error('A nova senha deve ter no mínimo 6 caracteres.') };
+      return { data: null, error: new Error('A nova senha deve ter no mínimo 11 caracteres.') };
     }
 
     if (isDemoSession() || !isSupabaseConfigured) {

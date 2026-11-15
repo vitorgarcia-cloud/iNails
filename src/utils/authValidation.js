@@ -83,7 +83,7 @@ export function validarSenha(senha) {
   if (!senha || senha.length < 6) {
     return {
       valido: false,
-      mensagem: 'A senha deve ter no mínimo 6 caracteres.'
+      mensagem: 'A senha deve ter no mínimo 11 caracteres.'
     };
   }
   return { valido: true };

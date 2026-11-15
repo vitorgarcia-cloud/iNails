@@ -342,7 +342,7 @@ BEGIN
     END;
 
     IF length(COALESCE(p_nova_senha, '')) < 6 THEN
-        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'A nova senha deve ter no mínimo 6 caracteres.');
+        RETURN jsonb_build_object('sucesso', false, 'mensagem', 'A nova senha deve ter no mínimo 11 caracteres.');
     END IF;
 
     -- Localiza o perfil conferindo Telefone + Data de Nascimento
